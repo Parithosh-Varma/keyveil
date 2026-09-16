@@ -5,9 +5,11 @@
   "description": "Blind secrets gateway for AI agents — Cloudflare Pages + Workers + D1 + KV",
   "workspaces": [
     "apps/web",
-    "workers/api"
+    "workers/api",
+    "packages/cli"
   ],
   "scripts": {
+    "cli": "node packages/cli/bin/keyveil.js",
     "dev:api": "npm --workspace workers/api run dev",
     "dev:web": "npm --workspace apps/web run dev",
     "deploy:api": "npm --workspace workers/api run deploy",

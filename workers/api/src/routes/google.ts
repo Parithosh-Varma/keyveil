@@ -22,7 +22,7 @@ export async function googleStart(_req: Request, env: Env): Promise<Response> {
   return new Response(JSON.stringify({ url: `https://accounts.google.com/o/oauth2/v2/auth?${params}` }), {
     headers: {
       "content-type": "application/json; charset=utf-8",
-      "Set-Cookie": `oauth_state=${state}.${exp}.${sig}; Path=/v1/auth/google/callback; HttpOnly; Secure; SameSite=Lax; Max-Age=300`,
+      "Set-Cookie": `oauth_state=${state}.${exp}.${sig}; Path=/v1/auth/google/callback; HttpOnly; Secure; SameSite=None; Max-Age=300`,
     },
   });
 }
@@ -98,7 +98,7 @@ export async function googleCallback(req: Request, env: Env): Promise<Response> 
   return new Response(null, {
     status: 302,
     headers: {
-      Location: `${web}/dashboard.html?login=ok`,
+      Location: `${web}/?login=ok`,
       "Set-Cookie": sessionCookie(sessionId),
     },
   });

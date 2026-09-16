@@ -9,6 +9,7 @@ Stack: Cloudflare Pages (UI) + Workers (API) + D1 (metadata/audit) + KV (encrypt
 ```
 apps/web/        # Cloudflare Pages frontend (static, no build step required)
 workers/api/     # Cloudflare Worker API (TypeScript, zero-deps, Web Standards)
+packages/cli/    # `keyveil` terminal CLI (login, secrets, keys, proxy)
 db/              # D1 schema + migrations
 docs/            # Architecture, security, setup
 SKILL.md         # Paste-this instruction for OpenCode
@@ -31,5 +32,6 @@ See `docs/SETUP.md`, `docs/ARCHITECTURE.md`, `docs/SECURITY.md`.
 
 ## Core rule
 
-Agents never call `GET /v1/secrets/:name` to read raw values (bootstrap only, redacted by default).
-Agents call `POST /v1/proxy/:provider/:action` — Worker injects the secret server-side and returns only the result.
+Blind agents call `POST /v1/proxy/:provider/:action` — Worker injects the secret server-side and returns only the result. Raw values leave the server only via `GET /v1/secrets/:name` with an explicit `secrets:reveal` scope (terminal use, audit-logged).
+
+Terminal: `npm run cli -- login --token <tv_live_...>` then `secrets`, `keys`, `proxy` subcommands (see `packages/cli/README.md`).

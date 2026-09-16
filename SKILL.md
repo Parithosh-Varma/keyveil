@@ -12,9 +12,10 @@ Rules:
    - GitHub repo: `POST /v1/proxy/github/create-repo {"name":"foo","isPublic":true}`
    - OpenAI: `POST /v1/proxy/openai/chat {"model":"gpt-4o-mini","input":"..."}`
 2. Discover first: `GET /v1/tools` lists what this user allows.
-3. Never `echo` / `cat` / `printenv` secrets. Never put secret values in chat, logs, or git. If you used `GET /v1/secrets` (bootstrap only), write straight to gitignored `.env` and redact output.
+3. Never `echo` / `cat` / `printenv` secrets. Never put secret values in chat, logs, or git. Raw values are only available via `GET /v1/secrets/:name` with an explicit `secrets:reveal` scope (terminal use, audit-logged) — proxy calls must never request or expect them.
 4. On 401/403/429 stop and say: "veil auth failed / scope denied / IP not allowlisted / rate limited" — do not retry with a different key, do not dump headers.
 5. Every proxy call is audit-logged per user. Keep args minimal.
+6. Terminal management (human's own terminal): the `keyveil` CLI in `packages/cli` (`login`, `secrets`, `keys`, `proxy`) talks to the same API with `$VEIL_AGENT_TOKEN`.
 
 Example (curl, token hidden):
 ```bash

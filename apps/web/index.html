@@ -3,35 +3,26 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>KeyVeil — Blind Gateway</title>
+  <title>keyveil</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="./styles.css" />
 </head>
 <body>
-  <main class="wrap">
-    <h1>KeyVeil</h1>
-    <p class="muted">Store keys once. Let agents <strong>use</strong> them without seeing them.</p>
-    <div class="card">
-      <h2>1. Sign in</h2>
-      <button id="login">Continue with Google</button>
-      <p class="muted small">Prod: Google OAuth. No passwords stored here.</p>
+  <div id="statusline"><span id="cwd">~/keyveil</span><span id="flags"></span><span id="user">…</span></div>
+  <main id="term" aria-live="polite"></main>
+  <div id="inputrow">
+    <span id="prompt">❯</span>
+    <input id="cmd" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="" aria-label="command input" />
+  </div>
+  <div id="hint">Enter submit · Esc clear · ↑↓ history · Ctrl+K commands · Ctrl+L clear</div>
+  <div id="palette" hidden>
+    <div id="palette-box">
+      <div id="palette-row"><span>&gt;</span><input id="palette-input" type="text" autocomplete="off" spellcheck="false" /></div>
+      <div id="palette-list"></div>
     </div>
-    <div class="card">
-      <h2>2. Open dashboard</h2>
-      <a href="./dashboard.html">Go to dashboard →</a>
-    </div>
-    <div class="card">
-      <h2>Agent quickstart</h2>
-      <pre>export VEIL_AGENT_TOKEN="tv_live_...paste-once..."
-export API_BASE_URL="https://api.yourdomain.com"
-curl -H "Authorization: Bearer $VEIL_AGENT_TOKEN" $API_BASE_URL/v1/tools</pre>
-    </div>
-  </main>
-  <script>
-    const API = localStorage.getItem('api_base') || 'http://127.0.0.1:8787';
-    document.getElementById('login').onclick = async () => {
-      const r = await fetch(API + '/v1/auth/google/start').then(r => r.json());
-      if (r.url) location.href = r.url;
-    };
-  </script>
+  </div>
+  <script src="./terminal.js"></script>
 </body>
 </html>

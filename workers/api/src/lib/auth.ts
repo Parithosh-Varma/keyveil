@@ -125,10 +125,14 @@ export async function revokeSession(env: Env, id: string): Promise<void> {
     .catch(() => {});
 }
 
+// SameSite=None + Secure: Pages and the Worker are different sites, so the
+// session cookie must be sent on cross-site credentialed fetch. CSRF exposure
+// is limited: state-changing agent routes need a Bearer token, human routes
+// are gated by the Google OAuth state check + session.
 export function sessionCookie(id: string): string {
-  return `session=${encodeURIComponent(id)}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=2592000`;
+  return `session=${encodeURIComponent(id)}; Path=/; HttpOnly; Secure; SameSite=None; Max-Age=2592000`;
 }
 
 export function clearSessionCookie(): string {
-  return `session=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0`;
+  return `session=; Path=/; HttpOnly; Secure; SameSite=None; Max-Age=0`;
 }
