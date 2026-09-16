@@ -101,11 +101,11 @@ export async function googleCallback(req: Request, env: Env): Promise<Response> 
   } catch {
     return json({ error: "session failed" }, 500);
   }
-  const web = env.WEB_BASE_URL || "/";
+  const web = env.DASHBOARD_URL || env.WEB_BASE_URL || "/";
   return new Response(null, {
     status: 302,
     headers: {
-      Location: `${web}/dashboard.html?login=ok&grant=${grant}`,
+      Location: `${web}/?login=ok&grant=${grant}`,
       "Set-Cookie": sessionCookie(sessionId),
     },
   });

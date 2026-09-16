@@ -4,6 +4,7 @@ compatibility_date = "2024-11-01"
 
 [vars]
 WEB_BASE_URL = "https://keyveil.pages.dev"
+DASHBOARD_URL = "https://keyveil-dashboard.pages.dev"
 
 # Fill these after `wrangler d1 create` / `wrangler kv:namespace create`
 [[d1_databases]]

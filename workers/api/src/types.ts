@@ -6,6 +6,7 @@ export interface Env {
   SESSION_SECRET: string;
   ENCRYPTION_KEK: string;
   WEB_BASE_URL: string;
+  DASHBOARD_URL: string;
 }
 
 export interface AgentKeyRow {

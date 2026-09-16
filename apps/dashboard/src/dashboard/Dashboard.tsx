@@ -7,8 +7,8 @@ import {
   describeApiError,
   saveSessionToken,
   setApiBase,
-} from "../lib/kv";
-import { GoogleButton } from "../components/GoogleButton";
+} from "../../../shared/kv";
+import { GoogleButton } from "../../../shared/GoogleButton";
 
 interface SecretRow {
   name: string;
@@ -136,6 +136,11 @@ export function Dashboard() {
   useEffect(() => {
     (async () => {
       const params = new URLSearchParams(location.search);
+      if (params.get("start") === "login") {
+        history.replaceState(null, "", location.pathname);
+        await login();
+        return;
+      }
       const grant = params.get("grant");
       if (grant) {
         // Cookie-less handoff: trade the one-time grant for a session token.

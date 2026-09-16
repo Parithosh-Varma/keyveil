@@ -1,13 +1,13 @@
 {
-  "name": "keyveil-web",
+  "name": "keyveil-dashboard",
   "version": "0.1.0",
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite --port 5173",
+    "dev": "vite --port 5174",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
-    "deploy": "npm run build && wrangler pages deploy dist --project-name=keyveil"
+    "deploy": "npm run build && wrangler pages deploy dist --project-name=keyveil-dashboard"
   },
   "dependencies": {
     "react": "^18.3.1",

@@ -4,16 +4,20 @@
   "version": "0.1.0",
   "description": "Blind secrets gateway for AI agents — Cloudflare Pages + Workers + D1 + KV",
   "workspaces": [
-    "apps/web",
+    "apps/landing",
+    "apps/dashboard",
     "workers/api",
     "packages/cli"
   ],
   "scripts": {
     "cli": "node packages/cli/bin/keyveil.js",
     "dev:api": "npm --workspace workers/api run dev",
-    "dev:web": "npm --workspace apps/web run dev",
+    "dev:landing": "npm --workspace apps/landing run dev",
+    "dev:dashboard": "npm --workspace apps/dashboard run dev",
     "deploy:api": "npm --workspace workers/api run deploy",
-    "deploy:web": "npm --workspace apps/web run deploy",
+    "deploy:landing": "npm --workspace apps/landing run deploy",
+    "deploy:dashboard": "npm --workspace apps/dashboard run deploy",
+    "deploy:web": "npm run deploy:landing && npm run deploy:dashboard",
     "db:apply": "wrangler d1 execute keyveil-db --file=db/schema.sql",
     "typecheck": "npm --workspace workers/api run typecheck"
   },

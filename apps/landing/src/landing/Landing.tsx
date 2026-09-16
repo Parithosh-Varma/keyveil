@@ -1,5 +1,5 @@
 import { Demo } from "./Demo";
-import { GoogleLogo } from "../components/GoogleButton";
+import { GoogleLogo } from "../../../shared/GoogleButton";
 
 export function Landing() {
   return (
@@ -13,7 +13,7 @@ export function Landing() {
           <a href="#security">Security</a>
           <a href="#cli">CLI</a>
           <a href="https://github.com/Parithosh-Varma/keyveil">GitHub</a>
-          <a className="cta" href="./dashboard.html">
+          <a className="cta" href="https://keyveil-dashboard.pages.dev/">
             Dashboard
           </a>
         </nav>
@@ -33,7 +33,7 @@ export function Landing() {
               call run through a proxy that injects the secret server-side.
             </p>
             <div className="cta-row">
-              <a className="btn google" href="./dashboard.html#login">
+              <a className="btn google" href="https://keyveil-dashboard.pages.dev/?start=login">
                 <GoogleLogo />
                 <span>Continue with Google</span>
               </a>
@@ -153,7 +153,7 @@ npm run cli -- proxy github create-repo -d '{"name":"my-project","isPublic":true
             <br />
             to work
           </h2>
-          <a className="btn google" href="./dashboard.html#login">
+          <a className="btn google" href="https://keyveil-dashboard.pages.dev/?start=login">
             <GoogleLogo />
             <span>Continue with Google</span>
           </a>
@@ -163,7 +163,7 @@ npm run cli -- proxy github create-repo -d '{"name":"my-project","isPublic":true
       <footer>
         <span>KeyVeil runs on Cloudflare Pages, Workers, and D1.</span>
         <nav>
-          <a href="./dashboard.html">Dashboard</a>
+          <a href="https://keyveil-dashboard.pages.dev/">Dashboard</a>
           <a href="https://github.com/Parithosh-Varma/keyveil">GitHub</a>
         </nav>
       </footer>
