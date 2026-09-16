@@ -1,0 +1,3 @@
+# Retired routes (web terminal removed; use the dashboard or the keyveil CLI).
+/terminal /dashboard 308
+/terminal.html /dashboard 308

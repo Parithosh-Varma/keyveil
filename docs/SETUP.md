@@ -19,7 +19,7 @@
 6. Dev:
    ```
    npm run dev:api   # http://127.0.0.1:8787
-    npm run dev:web   # Vite React+TS at :5173 (allowed CORS origin), type `api http://127.0.0.1:8787` in-terminal
+    npm run dev:web   # Vite React+TS at :5173 (allowed CORS origin); dashboard footer switches API to :8787
    ```
 7. Deploy:
    ```

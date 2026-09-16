@@ -98,7 +98,7 @@ export async function googleCallback(req: Request, env: Env): Promise<Response> 
   return new Response(null, {
     status: 302,
     headers: {
-      Location: `${web}/terminal.html?login=ok`,
+      Location: `${web}/dashboard.html?login=ok`,
       "Set-Cookie": sessionCookie(sessionId),
     },
   });

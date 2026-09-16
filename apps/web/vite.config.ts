@@ -1,8 +1,8 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 
-// Multi-page build: / (landing) and /terminal.html (terminal app).
-// The Google OAuth callback lands on /terminal.html?login=ok.
+// Multi-page build: / (landing) and /dashboard.html (management app).
+// The Google OAuth callback lands on /dashboard.html?login=ok.
 export default defineConfig({
   plugins: [react()],
   build: {
@@ -10,7 +10,7 @@ export default defineConfig({
     rollupOptions: {
       input: {
         main: "index.html",
-        terminal: "terminal.html",
+        dashboard: "dashboard.html",
       },
     },
   },

@@ -10,10 +10,10 @@ export function Landing() {
         <nav>
           <a href="#platform">Platform</a>
           <a href="#security">Security</a>
-          <a href="#cli">Terminal</a>
+          <a href="#cli">CLI</a>
           <a href="https://github.com/Parithosh-Varma/keyveil">GitHub</a>
-          <a className="cta" href="./terminal.html#login">
-            Open terminal
+          <a className="cta" href="./dashboard.html">
+            Dashboard
           </a>
         </nav>
       </header>
@@ -32,7 +32,7 @@ export function Landing() {
               call run through a proxy that injects the secret server-side.
             </p>
             <div className="cta-row">
-              <a className="btn primary" href="./terminal.html#login">
+              <a className="btn primary" href="./dashboard.html#login">
                 Continue with Google
               </a>
               <a className="btn" href="#demo">
@@ -151,7 +151,7 @@ npm run cli -- proxy github create-repo -d '{"name":"my-project","isPublic":true
             <br />
             to work
           </h2>
-          <a className="btn primary" href="./terminal.html#login">
+          <a className="btn primary" href="./dashboard.html#login">
             Continue with Google
           </a>
         </section>
@@ -160,7 +160,7 @@ npm run cli -- proxy github create-repo -d '{"name":"my-project","isPublic":true
       <footer>
         <span>KeyVeil runs on Cloudflare Pages, Workers, and D1.</span>
         <nav>
-          <a href="./terminal.html">Terminal</a>
+          <a href="./dashboard.html">Dashboard</a>
           <a href="https://github.com/Parithosh-Varma/keyveil">GitHub</a>
         </nav>
       </footer>
