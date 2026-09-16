@@ -391,6 +391,25 @@ input:focus { border-color: var(--accent); outline: none; box-shadow: 0 0 0 3px 
 .token-once p { margin: 0 0 10px; font-size: 14px; }
 .token-once code { color: #fff; font-size: 13px; }
 .token-once .btn { margin-top: 12px; }
+.token-once .agent-prompt {
+  margin-top: 16px;
+  border-top: 1px solid #3a3a3a;
+  padding-top: 14px;
+}
+.token-once .agent-prompt p { font-size: 13.5px; color: #d6d3d1; }
+.token-once .agent-prompt pre {
+  background: #1e1e1e;
+  border: 1px solid #3a3a3a;
+  border-radius: 8px;
+  padding: 14px 16px;
+  font-size: 12.5px;
+  line-height: 1.65;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: #f8f8f7;
+  max-height: 320px;
+  overflow-y: auto;
+}
 
 .revealed code { user-select: all; }
 

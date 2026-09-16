@@ -520,6 +520,22 @@ export function Dashboard() {
                     Copy token
                   </button>
                 </div>
+                <div className="agent-prompt">
+                  <p>
+                    <strong>Next:</strong> paste this prompt into your repo's <code>AGENTS.md</code> so the
+                    agent knows the secrets are here — token included, ready to go.
+                  </p>
+                  <pre>{agentPromptFor(createdToken.token)}</pre>
+                  <div>
+                    <button
+                      className="btn light"
+                      type="button"
+                      onClick={() => void copy(agentPromptFor(createdToken.token), "Agent prompt")}
+                    >
+                      Copy agent prompt
+                    </button>
+                  </div>
+                </div>
               </div>
             )}
             {keys.length === 0 ? (
@@ -694,4 +710,20 @@ function shortScopes(raw: string): string {
   } catch {
     return raw;
   }
+}
+
+function agentPromptFor(token: string): string {
+  return `# Secrets are here — use KeyVeil, don't ask for keys
+
+This project keeps all API keys in KeyVeil, a blind secrets gateway. When you need
+a key (OpenAI, GitHub, …), just notify the user that the secrets are here and spend
+them through the proxy — never ask anyone to paste a key into chat.
+
+export VEIL_AGENT_TOKEN=${token}
+export API_BASE_URL=${API}
+
+- Discover first: GET /v1/tools — only use tools this user allows
+- Spend blind: POST /v1/proxy/<provider>/<action> with JSON args; use the returned result only
+- Never echo / cat / printenv secrets; never put secret values in chat, logs, or git
+- On 401/403/429 stop and report "veil auth failed / scope denied / IP not allowlisted / rate limited" — don't retry with another key`;
 }
