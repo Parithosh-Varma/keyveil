@@ -34,7 +34,7 @@ export async function proxyGithubCreateRepo(
       Authorization: `Bearer ${token}`,
       Accept: "application/vnd.github+json",
       "Content-Type": "application/json",
-      "User-Agent": "api-tokens-gateway",
+      "User-Agent": "keyveil-gateway",
     },
     body: JSON.stringify({ name, private: body.isPublic === false }),
   });

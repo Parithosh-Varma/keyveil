@@ -1,4 +1,4 @@
--- D1 schema for API-TOKENS (prod, multi-user).
+-- D1 schema for KeyVeil (prod, multi-user).
 -- Encrypted secret bytes live in KV (u:<user_id>:s:<NAME>) and/or `secrets.ciphertext`.
 -- Never store plaintext. Never log secret values.
 

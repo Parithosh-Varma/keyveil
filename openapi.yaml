@@ -1,6 +1,6 @@
 openapi: 3.0.3
 info:
-  title: API-TOKENS Blind Gateway
+  title: KeyVeil Blind Gateway
   version: 0.1.0
   description: Agents use secrets without seeing them via proxy tools.
 servers:

@@ -1,4 +1,4 @@
-name = "api-tokens-api"
+name = "keyveil-api"
 main = "src/index.ts"
 compatibility_date = "2024-11-01"
 
@@ -6,13 +6,13 @@ compatibility_date = "2024-11-01"
 WEB_BASE_URL = "https://yourdomain.com"
 
 # Fill these after `wrangler d1 create` / `wrangler kv:namespace create`
-# [[d1_databases]]
-# binding = "DB"
-# database_name = "api-tokens-db"
-# database_id = "PASTE_D1_ID"
+[[d1_databases]]
+binding = "DB"
+database_name = "keyveil-db"
+database_id = "a86d1d76-a9cd-4a23-abcb-d0d4fd9b016e"
 
 # [[kv_namespaces]]
-# binding = "VAULT_KV"
+# binding = "VEIL_KV"
 # id = "PASTE_KV_ID"
 
 # Production secrets (never commit): set via

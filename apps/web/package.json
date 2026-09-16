@@ -1,11 +1,11 @@
 {
-  "name": "api-tokens-web",
+  "name": "keyveil-web",
   "version": "0.1.0",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "npx serve@latest . -l 5173",
-    "deploy": "wrangler pages deploy . --project-name=api-tokens-web"
+    "deploy": "wrangler pages deploy . --project-name=keyveil"
   },
   "devDependencies": {
     "wrangler": "^3.0.0"

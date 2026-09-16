@@ -4,11 +4,11 @@
 2. `cp .env.example .env` (local only).
 3. Bindings:
    ```
-   wrangler d1 create api-tokens-db
-   wrangler kv:namespace create VAULT_KV
+   wrangler d1 create keyveil-db
+   wrangler kv:namespace create VEIL_KV
    ```
    Paste IDs into `workers/api/wrangler.toml` (uncomment `[[d1_databases]]` / `[[kv_namespaces]]`).
-4. Schema: `wrangler d1 execute api-tokens-db --file=db/schema.sql --remote`
+4. Schema: `wrangler d1 execute keyveil-db --file=db/schema.sql --remote`
 5. Secrets:
    ```
    wrangler secret put GOOGLE_CLIENT_ID --cwd workers/api

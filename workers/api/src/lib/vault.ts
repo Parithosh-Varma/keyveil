@@ -3,8 +3,8 @@ import type { Env } from "../types";
 /** Load a user's decrypted secret by name. KV holds ciphertext, D1 holds pointer metadata. */
 export async function loadUserSecret(env: Env, userId: string, name: string): Promise<string | null> {
   const { decryptSecret } = await import("./crypto");
-  if (env.VAULT_KV) {
-    const payload = await env.VAULT_KV.get(`u:${userId}:s:${name}`);
+  if (env.VEIL_KV) {
+    const payload = await env.VEIL_KV.get(`u:${userId}:s:${name}`);
     if (payload) {
       try {
         return await decryptSecret(env, payload);

@@ -66,7 +66,7 @@ async function handleStoreSecret(req: Request, env: Env): Promise<Response> {
   if (!name || value.length < 3 || value.length > 20000) return json({ error: "bad name/value" }, 400);
   const ct = await encryptSecret(env, value);
   try {
-    if (env.VAULT_KV) await env.VAULT_KV.put(`u:${uidOr}:s:${name}`, ct);
+    if (env.VEIL_KV) await env.VEIL_KV.put(`u:${uidOr}:s:${name}`, ct);
     if (env.DB) {
       await env.DB.prepare(
         "INSERT INTO secrets (id, user_id, name, ciphertext, updated_at) VALUES (?, ?, ?, ?, ?) ON CONFLICT(user_id, name) DO UPDATE SET ciphertext=excluded.ciphertext, updated_at=excluded.updated_at"
@@ -126,7 +126,7 @@ async function handleCreateAgentKey(req: Request, env: Env): Promise<Response> {
       .catch(() => {});
   }
   await audit(env, { user_id: uidOr, actor: "human", action: "agent-key:create", ok: true, ip: clientIp(req) });
-  // Show full token ONCE. UI must tell user to save it in $VAULT_AGENT_TOKEN.
+  // Show full token ONCE. UI must tell user to save it in $VEIL_AGENT_TOKEN.
   return json({ token: fullAgentToken(prefix, secret), prefix, scopes, expires_at: expires });
 }
 

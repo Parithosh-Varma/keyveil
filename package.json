@@ -1,5 +1,5 @@
 {
-  "name": "api-tokens",
+  "name": "keyveil",
   "private": true,
   "version": "0.1.0",
   "description": "Blind secrets gateway for AI agents — Cloudflare Pages + Workers + D1 + KV",
@@ -12,7 +12,7 @@
     "dev:web": "npm --workspace apps/web run dev",
     "deploy:api": "npm --workspace workers/api run deploy",
     "deploy:web": "npm --workspace apps/web run deploy",
-    "db:apply": "wrangler d1 execute api-tokens-db --file=db/schema.sql",
+    "db:apply": "wrangler d1 execute keyveil-db --file=db/schema.sql",
     "typecheck": "npm --workspace workers/api run typecheck"
   },
   "engines": {

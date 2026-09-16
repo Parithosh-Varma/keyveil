@@ -1,4 +1,4 @@
-# API-TOKENS — Blind Secrets Gateway for AI Agents (prod)
+# KeyVeil — Blind Secrets Gateway for AI Agents (prod)
 
 Multi-user prod vault: users sign in with Google, store third-party API keys, and let AI agents (OpenCode) **use** them via a blind proxy without ever seeing the characters.
 
@@ -20,10 +20,10 @@ openapi.yaml     # Agent-facing API contract
 1. `cp .env.example .env` and fill Google OAuth client + domains.
 2. `npm install -g wrangler`
 3. Create D1 + KV:
-   `wrangler d1 create api-tokens-db`
-   `wrangler kv:namespace create VAULT_KV`
+   `wrangler d1 create keyveil-db`
+   `wrangler kv:namespace create VEIL_KV`
    Paste IDs into `workers/api/wrangler.toml`.
-4. Apply schema: `wrangler d1 execute api-tokens-db --file=db/schema.sql`
+4. Apply schema: `wrangler d1 execute keyveil-db --file=db/schema.sql`
 5. Dev API: `npm run dev:api` — Dev UI: `npm run dev:web`
 6. Deploy: `npm run deploy:api` + `npm run deploy:web`
 
