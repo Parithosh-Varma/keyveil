@@ -32,14 +32,43 @@ export interface ToolsResponse {
   tools: Array<{ provider: string; action: string; description: string }>;
 }
 
+const SESSION_KEY = "kv_session";
+
+export function loadSessionToken(): string | null {
+  try {
+    return localStorage.getItem(SESSION_KEY);
+  } catch {
+    return null;
+  }
+}
+
+export function saveSessionToken(token: string) {
+  try {
+    localStorage.setItem(SESSION_KEY, token);
+  } catch {
+    /* private mode */
+  }
+}
+
+export function clearSessionToken() {
+  try {
+    localStorage.removeItem(SESSION_KEY);
+  } catch {
+    /* private mode */
+  }
+}
+
 export async function api<T = Record<string, unknown>>(
   path: string,
   opts: { method?: string; body?: unknown } = {}
 ): Promise<T> {
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  const sess = loadSessionToken();
+  if (sess) headers["Authorization"] = `Bearer ${sess}`;
   const res = await fetch(API + path, {
     method: opts.method || "GET",
     credentials: "include",
-    headers: { "Content-Type": "application/json" },
+    headers,
     body: opts.body === undefined ? undefined : JSON.stringify(opts.body),
   });
   const data = (await res.json().catch(() => ({}))) as Record<string, unknown> & {

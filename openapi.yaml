@@ -97,6 +97,21 @@ paths:
       summary: Revoke the current session
       responses:
         '200': { description: ok }
+  /v1/auth/grant:
+    post:
+      summary: Trade a one-time login grant for a session bearer (cookie-less frontends)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [code]
+              properties:
+                code: { type: string }
+      responses:
+        '200': { description: session_token (Bearer sess_...) }
+        '401': { description: invalid or expired grant }
   /v1/proxy/github/create-repo:
     post:
       summary: Create GitHub repo (injects GITHUB_TOKEN server-side)

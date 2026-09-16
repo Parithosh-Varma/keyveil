@@ -1,7 +1,7 @@
 # Pages security headers (Vite copies public/ -> dist).
 # API calls go to workers.dev; the Worker's own CORS layer stays authoritative.
 /*
-  Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://keyveil-api.parithosh.workers.dev http://127.0.0.1:8787 http://localhost:5173; frame-ancestors 'none'; base-uri 'self'; form-action 'self'
+  Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://lh3.googleusercontent.com; connect-src 'self' https://keyveil-api.parithosh.workers.dev http://127.0.0.1:8787 http://localhost:5173; frame-ancestors 'none'; base-uri 'self'; form-action 'self'
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
   Referrer-Policy: no-referrer

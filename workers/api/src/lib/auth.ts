@@ -102,9 +102,8 @@ export async function createSession(env: Env, userId: string, days = 30): Promis
   return id;
 }
 
-/** Resolve the session cookie to a user id, or null. */
-export async function getSessionUser(req: Request, env: Env): Promise<string | null> {
-  const id = getCookie(req, "session");
+/** Resolve a session id to a user id, or null. */
+export async function getSessionById(env: Env, id: string): Promise<string | null> {
   if (!id || !/^[\w-]{20,}$/.test(id) || !env.DB) return null;
   const row = await env.DB.prepare(
     "SELECT user_id, expires_at, revoked_at FROM sessions WHERE id = ? LIMIT 1"
@@ -117,6 +116,62 @@ export async function getSessionUser(req: Request, env: Env): Promise<string | n
   return row.user_id;
 }
 
+/** Resolve the session cookie to a user id, or null. */
+export async function getSessionUser(req: Request, env: Env): Promise<string | null> {
+  return getSessionById(env, getCookie(req, "session") || "");
+}
+
+/** Session bearer transport: `Authorization: Bearer sess_<id>`.
+ *  Same opaque session as the cookie — for frontends where third-party
+ *  cookies are blocked. Never log or return the id itself. */
+export function sessionBearer(id: string): string {
+  return `sess_${id}`;
+}
+
+export async function getBearerSessionUser(req: Request, env: Env): Promise<string | null> {
+  const t = getBearerToken(req);
+  if (!t || !t.startsWith("sess_")) return null;
+  return getSessionById(env, t.slice(5));
+}
+
+export function getBearerSessionId(req: Request): string | null {
+  const t = getBearerToken(req);
+  if (!t || !t.startsWith("sess_")) return null;
+  const id = t.slice(5);
+  return /^[\w-]{20,}$/.test(id) ? id : null;
+}
+
+/** One-time login grant: exchanged for a session within 5 minutes. */
+export async function createGrant(env: Env, userId: string): Promise<string> {
+  if (!env.DB) throw new Error("DB not bound");
+  const code = randomToken();
+  const now = Date.now();
+  await env.DB.prepare("INSERT INTO grants (code, user_id, created_at, expires_at) VALUES (?, ?, ?, ?)")
+    .bind(code, userId, new Date(now).toISOString(), new Date(now + 5 * 60_000).toISOString())
+    .run();
+  return code;
+}
+
+/** Redeem a grant code for a fresh session id. Single-use. */
+export async function redeemGrant(env: Env, code: string): Promise<string | null> {
+  if (!code || !/^[\w-]{20,}$/.test(code) || !env.DB) return null;
+  const row = await env.DB.prepare("SELECT user_id, expires_at, used_at FROM grants WHERE code = ? LIMIT 1")
+    .bind(code)
+    .first<{ user_id: string; expires_at: string; used_at: string | null }>()
+    .catch(() => null);
+  if (!row || row.used_at) return null;
+  if (new Date(row.expires_at).getTime() < Date.now()) return null;
+  await env.DB.prepare("UPDATE grants SET used_at = ? WHERE code = ?")
+    .bind(new Date().toISOString(), code)
+    .run()
+    .catch(() => null);
+  try {
+    return await createSession(env, row.user_id);
+  } catch {
+    return null;
+  }
+}
+
 export async function revokeSession(env: Env, id: string): Promise<void> {
   if (!env.DB) return;
   await env.DB.prepare("UPDATE sessions SET revoked_at = ? WHERE id = ?")
@@ -125,14 +180,14 @@ export async function revokeSession(env: Env, id: string): Promise<void> {
     .catch(() => {});
 }
 
-// SameSite=None + Secure: Pages and the Worker are different sites, so the
-// session cookie must be sent on cross-site credentialed fetch. CSRF exposure
-// is limited: state-changing agent routes need a Bearer token, human routes
-// are gated by the Google OAuth state check + session.
+// SameSite=None + Secure + Partitioned: Pages and the Worker are different
+// sites. Partitioned (CHIPS) keeps the cookie working where third-party
+// cookies are blocked; where even that fails, the login grant flow hands the
+// frontend a session bearer instead (see grants below).
 export function sessionCookie(id: string): string {
-  return `session=${encodeURIComponent(id)}; Path=/; HttpOnly; Secure; SameSite=None; Max-Age=2592000`;
+  return `session=${encodeURIComponent(id)}; Path=/; HttpOnly; Secure; SameSite=None; Partitioned; Max-Age=2592000`;
 }
 
 export function clearSessionCookie(): string {
-  return `session=; Path=/; HttpOnly; Secure; SameSite=None; Max-Age=0`;
+  return `session=; Path=/; HttpOnly; Secure; SameSite=None; Partitioned; Max-Age=0`;
 }

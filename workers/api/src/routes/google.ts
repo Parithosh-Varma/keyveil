@@ -1,5 +1,5 @@
 import type { Env } from "../types";
-import { createSession, getCookie, json, randomToken, sessionCookie } from "../lib/auth";
+import { createGrant, createSession, getCookie, json, randomToken, sessionCookie } from "../lib/auth";
 
 /**
  * Google OAuth 2.0 (multi-user prod): signed state cookie (CSRF), code
@@ -22,7 +22,7 @@ export async function googleStart(_req: Request, env: Env): Promise<Response> {
   return new Response(JSON.stringify({ url: `https://accounts.google.com/o/oauth2/v2/auth?${params}` }), {
     headers: {
       "content-type": "application/json; charset=utf-8",
-      "Set-Cookie": `oauth_state=${state}.${exp}.${sig}; Path=/v1/auth/google/callback; HttpOnly; Secure; SameSite=None; Max-Age=300`,
+      "Set-Cookie": `oauth_state=${state}.${exp}.${sig}; Path=/v1/auth/google/callback; HttpOnly; Secure; SameSite=None; Partitioned; Max-Age=300`,
     },
   });
 }
@@ -61,14 +61,14 @@ export async function googleCallback(req: Request, env: Env): Promise<Response> 
   if (!tj.id_token) return json({ error: "no id_token" }, 502);
 
   // 2) Full signature verification
-  let identity: { email: string; name: string };
+  let identity: { email: string; name: string; picture: string };
   try {
     identity = await verifyGoogleIdToken(tj.id_token, env.GOOGLE_CLIENT_ID);
   } catch {
     return json({ error: "invalid id_token" }, 401);
   }
 
-  // 3) Upsert user
+  // 3) Upsert user (refresh name/picture on every login)
   let userId = `u_${await sha(`google:${identity.email}`)}`.slice(0, 24);
   try {
     if (env.DB) {
@@ -77,9 +77,13 @@ export async function googleCallback(req: Request, env: Env): Promise<Response> 
         .first<{ id: string }>();
       if (existing) {
         userId = existing.id;
+        await env.DB.prepare("UPDATE users SET name = ?, picture = ? WHERE id = ?")
+          .bind(identity.name, identity.picture, userId)
+          .run()
+          .catch(() => null);
       } else {
-        await env.DB.prepare("INSERT INTO users (id, email, name, created_at) VALUES (?, ?, ?, ?)")
-          .bind(userId, identity.email, identity.name, new Date().toISOString())
+        await env.DB.prepare("INSERT INTO users (id, email, name, picture, created_at) VALUES (?, ?, ?, ?, ?)")
+          .bind(userId, identity.email, identity.name, identity.picture, new Date().toISOString())
           .run();
       }
     }
@@ -87,10 +91,13 @@ export async function googleCallback(req: Request, env: Env): Promise<Response> 
     return json({ error: "user store failed" }, 500);
   }
 
-  // 4) Opaque session
+  // 4) Opaque session (cookie for same-site browsers) + one-time grant so a
+  // cross-site frontend can pick up the session without third-party cookies.
   let sessionId: string;
+  let grant: string;
   try {
     sessionId = await createSession(env, userId);
+    grant = await createGrant(env, userId);
   } catch {
     return json({ error: "session failed" }, 500);
   }
@@ -98,7 +105,7 @@ export async function googleCallback(req: Request, env: Env): Promise<Response> 
   return new Response(null, {
     status: 302,
     headers: {
-      Location: `${web}/dashboard.html?login=ok`,
+      Location: `${web}/dashboard.html?login=ok&grant=${grant}`,
       "Set-Cookie": sessionCookie(sessionId),
     },
   });
@@ -155,7 +162,7 @@ async function googleCerts(): Promise<Record<string, CryptoKey>> {
 export async function verifyGoogleIdToken(
   idToken: string,
   clientId: string
-): Promise<{ email: string; name: string }> {
+): Promise<{ email: string; name: string; picture: string }> {
   const parts = idToken.split(".");
   if (parts.length !== 3) throw new Error("bad token");
   const header = JSON.parse(new TextDecoder().decode(b64urlToBytes(parts[0]))) as {
@@ -185,6 +192,7 @@ export async function verifyGoogleIdToken(
     email?: string;
     email_verified?: boolean;
     name?: string;
+    picture?: string;
   };
   if (payload.aud !== clientId) throw new Error("bad audience");
   if (payload.iss !== "https://accounts.google.com" && payload.iss !== "accounts.google.com") {
@@ -193,5 +201,5 @@ export async function verifyGoogleIdToken(
   if (typeof payload.exp !== "number" || payload.exp * 1000 < Date.now()) throw new Error("expired");
   const email = String(payload.email || "").toLowerCase();
   if (!payload.email_verified || !email) throw new Error("email not verified");
-  return { email, name: String(payload.name || email) };
+  return { email, name: String(payload.name || email), picture: String(payload.picture || "") };
 }

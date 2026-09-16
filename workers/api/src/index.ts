@@ -4,12 +4,16 @@ import {
   authAgent,
   clearSessionCookie,
   clientIp,
+  getBearerSessionId,
+  getBearerSessionUser,
   getBearerToken,
   getCookie,
   getSessionUser,
   hasScope,
   json,
+  redeemGrant,
   revokeSession,
+  sessionBearer,
 } from "./lib/auth";
 import { encryptSecret, fullAgentToken, newAgentToken, sha256Hex } from "./lib/crypto";
 import { audit, loadUserSecret } from "./lib/vault";
@@ -68,6 +72,7 @@ async function handle(req: Request, env: Env): Promise<Response> {
     if (path === "/v1/auth/google/start" && method === "GET") return googleStart(req, env);
     if (path === "/v1/auth/google/callback" && method === "GET") return googleCallback(req, env);
     if (path === "/v1/auth/logout" && method === "POST") return handleLogout(req, env);
+    if (path === "/v1/auth/grant" && method === "POST") return handleGrant(req, env);
 
     if (path === "/v1/secrets" && method === "POST") return handleStoreSecret(req, env);
     if (path === "/v1/secrets" && method === "GET") return handleListSecrets(req, env);
@@ -104,6 +109,9 @@ interface Actor {
 async function resolveUser(req: Request, env: Env): Promise<Actor | Response> {
   const sessionUid = await getSessionUser(req, env);
   if (sessionUid) return { userId: sessionUid, via: "human", scopes: ["*"] };
+  // Cookie-less session transport for cross-site frontends (localStorage).
+  const bearerSessionUid = await getBearerSessionUser(req, env);
+  if (bearerSessionUid) return { userId: bearerSessionUid, via: "human", scopes: ["*"] };
   if (getBearerToken(req)) {
     const authed = await authAgent(req, env);
     if (authed instanceof Response) return authed;
@@ -128,17 +136,36 @@ function needScope(actor: Actor, scope: string): Response | null {
 async function handleWhoami(req: Request, env: Env): Promise<Response> {
   const actorOr = await resolveUser(req, env);
   if (actorOr instanceof Response) return actorOr;
+  let name: string | null = null;
+  let picture: string | null = null;
+  if (env.DB) {
+    const row = await env.DB.prepare("SELECT name, picture FROM users WHERE id = ? LIMIT 1")
+      .bind(actorOr.userId)
+      .first<{ name: string | null; picture: string | null }>()
+      .catch(() => null);
+    name = row?.name || null;
+    picture = row?.picture || null;
+  }
   return json({
     user_id: actorOr.userId,
     via: actorOr.via,
     scopes: actorOr.scopes,
+    name,
+    picture,
     key_prefix: actorOr.keyPrefix || null,
     key_name: actorOr.keyName || null,
   });
 }
 
+async function handleGrant(req: Request, env: Env): Promise<Response> {
+  const body = (await req.json().catch(() => ({}))) as { code?: string };
+  const sessionId = await redeemGrant(env, body.code || "");
+  if (!sessionId) return json({ error: "invalid or expired grant" }, 401);
+  return json({ session_token: sessionBearer(sessionId) });
+}
+
 async function handleLogout(req: Request, env: Env): Promise<Response> {
-  const id = getCookie(req, "session");
+  const id = getCookie(req, "session") || getBearerSessionId(req);
   if (id) await revokeSession(env, id);
   return json({ ok: true }, 200, { "Set-Cookie": clearSessionCookie() });
 }
