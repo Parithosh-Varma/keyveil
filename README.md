@@ -7,7 +7,7 @@ Stack: Cloudflare Pages (UI) + Workers (API) + D1 (metadata/audit) + KV (encrypt
 ## Layout
 
 ```
-apps/web/        # Cloudflare Pages frontend (static, no build step required)
+apps/web/        # Cloudflare Pages frontend (Vite + React + TS, `dist/` deploy)
 workers/api/     # Cloudflare Worker API (TypeScript, zero-deps, Web Standards)
 packages/cli/    # `keyveil` terminal CLI (login, secrets, keys, proxy)
 db/              # D1 schema + migrations
