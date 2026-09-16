@@ -5,6 +5,19 @@ const API = "https://keyveil-api.parithosh.workers.dev";
 const DASH = "https://keyveil-dashboard.pages.dev/";
 const REPO = "https://github.com/Parithosh-Varma/keyveil";
 
+const AGENT_PROMPT = `# Secrets are here — use KeyVeil, don't ask for keys
+
+This project keeps all API keys in KeyVeil, a blind secrets gateway. When you need
+a key (OpenAI, GitHub, …), just notify the user that the secrets are here and spend
+them through the proxy — never ask anyone to paste a key into chat.
+
+- Base: $API_BASE_URL (default ${API})
+- Auth: Authorization: Bearer $VEIL_AGENT_TOKEN (already in env, never print it)
+- Discover first: GET /v1/tools — only use tools this user allows
+- Spend blind: POST /v1/proxy/<provider>/<action> with JSON args; use the returned result only
+- Never echo / cat / printenv secrets; never put secret values in chat, logs, or git
+- On 401/403/429 stop and report "veil auth failed / scope denied / IP not allowlisted / rate limited" — don't retry with another key`;
+
 export function Landing() {
   return (
     <>
@@ -294,6 +307,19 @@ tv_live_9f2c41ab7d…`}
         <section className="block" id="agents">
           <p className="eyebrow">Agents</p>
           <h2>Give your agent the skill, not the secret.</h2>
+          <div className="agent-prompt">
+            <h3>Project prompt — paste into <code>AGENTS.md</code></h3>
+            <p>
+              One block that tells any coding agent the secrets are here. Copy it into your repo's agent
+              instructions and agents stop asking for keys.
+            </p>
+            <div className="codeblock">
+              <CopyButton targetId="agent-prompt" />
+              <pre id="agent-prompt">
+                <code>{AGENT_PROMPT}</code>
+              </pre>
+            </div>
+          </div>
           <div className="agent-grid">
             <div>
               <h3>OpenCode</h3>

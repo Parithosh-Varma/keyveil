@@ -12,6 +12,8 @@
   color-scheme: light;
 }
 * { box-sizing: border-box; }
+html, body { max-width: 100%; overflow-x: clip; }
+img, pre, table { max-width: 100%; }
 html { scroll-behavior: smooth; }
 body {
   margin: 0;
@@ -71,11 +73,13 @@ a:focus-visible, button:focus-visible, input:focus-visible {
 .hero h1 {
   font-family: "Montserrat", sans-serif;
   font-weight: 800;
-  font-size: clamp(56px, 10vw, 128px);
+  font-size: clamp(44px, 10vw, 128px);
   line-height: 0.98;
   letter-spacing: -0.03em;
   color: var(--ink);
   margin: 0 0 28px;
+  max-width: 100%;
+  overflow-wrap: break-word;
 }
 .hero h1 .line { display: block; }
 .hero h1 .dot {
@@ -127,8 +131,12 @@ a:focus-visible, button:focus-visible, input:focus-visible {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 16px;
+  min-width: 0;
 }
 .pillar {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: break-word;
   background: var(--card);
   border: 1px solid var(--line);
   border-radius: 12px;
@@ -238,8 +246,11 @@ a:focus-visible, button:focus-visible, input:focus-visible {
 .cta-row.start { justify-content: flex-start; }
 
 /* problem */
-.leak-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 26px; }
+.leak-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 26px; min-width: 0; }
 .leak-grid article {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: break-word;
   background: var(--card);
   border: 1px solid var(--line);
   border-left: 4px solid var(--accent);
@@ -266,9 +277,12 @@ a:focus-visible, button:focus-visible, input:focus-visible {
 .answer strong { color: var(--accent-dark); }
 
 /* how-it-works flow */
-.flow { display: flex; align-items: stretch; gap: 12px; margin-bottom: 24px; }
+.flow { display: flex; align-items: stretch; gap: 12px; margin-bottom: 24px; min-width: 0; }
 .flow-box {
   flex: 1;
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: break-word; /* long Bearer … / scope strings wrap instead of pushing the page */
   background: var(--card);
   border: 1px solid var(--line);
   border-radius: 12px;
@@ -310,7 +324,8 @@ a:focus-visible, button:focus-visible, input:focus-visible {
 .callout p { font-size: 15px; margin: 0; }
 
 /* before / after */
-.compare { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.compare { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; min-width: 0; }
+.compare > * { min-width: 0; max-width: 100%; }
 .compare-label { font-size: 13.5px; font-weight: 600; margin: 0 0 10px; }
 .compare-label.bad { color: var(--accent-dark); }
 .compare-label.good { color: #2f7d32; }
@@ -318,11 +333,22 @@ a:focus-visible, button:focus-visible, input:focus-visible {
 /* cli steps */
 .codeblock.install { margin-bottom: 28px; }
 .codeblock.install pre { padding: 20px 26px; }
-.cli-steps { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.cli-steps { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; min-width: 0; }
+.step { min-width: 0; max-width: 100%; overflow: hidden; }
 .step h3 { color: var(--ink); font-size: 17px; margin: 0 0 6px; }
 .step > p { font-size: 14.5px; color: var(--muted); margin: 0 0 12px; }
 
 /* agents */
+.agent-prompt {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-top: 4px solid var(--accent);
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 16px;
+}
+.agent-prompt h3 { color: var(--ink); font-size: 17px; margin: 0 0 6px; }
+.agent-prompt > p { font-size: 14.5px; color: var(--muted); margin: 0 0 12px; }
 .agent-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
 .agent-grid h3, .agent-duo h3 { color: var(--ink); font-size: 17px; margin: 0 0 6px; }
 .agent-grid > div > p, .agent-duo > div > p { font-size: 14.5px; color: var(--muted); margin: 0 0 12px; }
