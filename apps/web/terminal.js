@@ -544,6 +544,11 @@ paletteInput.addEventListener("keydown", (e) => {
     print("", "");
     done("Signed in with Google");
   }
+  if (location.hash === "#login") {
+    history.replaceState(null, "", location.pathname);
+    dispatch("login");
+    return;
+  }
   try {
     const me = await api("/v1/whoami");
     setUser(me.user_id);

@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>keyveil</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <div id="statusline"><span id="cwd">~/keyveil</span><span id="flags"></span><span id="user">…</span></div>
+  <main id="term" aria-live="polite"></main>
+  <div id="inputrow">
+    <span id="prompt">❯</span>
+    <input id="cmd" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="" aria-label="command input" />
+  </div>
+  <div id="hint">Enter submit · Esc clear · ↑↓ history · Ctrl+K commands · Ctrl+L clear</div>
+  <div id="palette" hidden>
+    <div id="palette-box">
+      <div id="palette-row"><span>&gt;</span><input id="palette-input" type="text" autocomplete="off" spellcheck="false" /></div>
+      <div id="palette-list"></div>
+    </div>
+  </div>
+  <script src="./terminal.js"></script>
+</body>
+</html>

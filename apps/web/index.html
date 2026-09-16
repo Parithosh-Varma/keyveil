@@ -3,26 +3,123 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>keyveil</title>
+  <meta name="theme-color" content="#F3F3EE" />
+  <title>KeyVeil Platform — blind keys for fast agents</title>
+  <meta name="description" content="KeyVeil stores API keys encrypted and lets AI agents spend them through a scoped, audited proxy. Keys never reach chats, logs, or repos." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="./styles.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./landing.css" />
 </head>
 <body>
-  <div id="statusline"><span id="cwd">~/keyveil</span><span id="flags"></span><span id="user">…</span></div>
-  <main id="term" aria-live="polite"></main>
-  <div id="inputrow">
-    <span id="prompt">❯</span>
-    <input id="cmd" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="" aria-label="command input" />
-  </div>
-  <div id="hint">Enter submit · Esc clear · ↑↓ history · Ctrl+K commands · Ctrl+L clear</div>
-  <div id="palette" hidden>
-    <div id="palette-box">
-      <div id="palette-row"><span>&gt;</span><input id="palette-input" type="text" autocomplete="off" spellcheck="false" /></div>
-      <div id="palette-list"></div>
-    </div>
-  </div>
-  <script src="./terminal.js"></script>
+  <header class="nav">
+    <a class="wordmark" href="./">keyveil</a>
+    <nav>
+      <a href="#platform">Platform</a>
+      <a href="#security">Security</a>
+      <a href="#cli">Terminal</a>
+      <a href="https://github.com/Parithosh-Varma/keyveil">GitHub</a>
+      <a class="cta" href="./terminal.html#login">Open terminal</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero">
+      <h1><span class="line">KeyVeil<span class="dot" aria-hidden="true"></span></span><span class="line">Platform</span></h1>
+      <div class="hero-support">
+        <p class="tagline">Blind keys for fast agents. Store API keys encrypted, hand agents scoped tokens, and let every call run through a proxy that injects the secret server-side.</p>
+        <div class="cta-row">
+          <a class="btn primary" href="./terminal.html#login">Continue with Google</a>
+          <a class="btn" href="#demo">See one blind call</a>
+        </div>
+      </div>
+    </section>
+
+    <section class="pillars" id="platform">
+      <div class="pillar">
+        <p class="pillar-tag">Storage</p>
+        <h2>VeilVault</h2>
+        <p>Keys encrypted with AES-256-GCM before they touch the database, wrapped by per-account keys. Dashboards and APIs list names only — values are never returned by default.</p>
+      </div>
+      <div class="pillar">
+        <p class="pillar-tag">Control</p>
+        <h2>VeilScope</h2>
+        <p>Agent tokens limited to named actions, IP ranges, and expiry dates. Each token is shown once; only its hash is stored. Revocation lands on the very next request.</p>
+      </div>
+      <div class="pillar">
+        <p class="pillar-tag">Execution</p>
+        <h2>VeilProxy</h2>
+        <p>Calls arrive with a token, never a key. The gateway checks scope and identity, injects the secret, and returns only the result. Reading a raw value needs the separate <code>secrets:reveal</code> scope — and gets logged.</p>
+      </div>
+    </section>
+
+    <section class="stats" aria-label="Platform facts">
+      <ul>
+        <li><span>AES-256-GCM</span><span>encryption at rest</span></li>
+        <li><span>0</span><span>secret characters in logs</span></li>
+        <li><span>100%</span><span>of calls audit-logged</span></li>
+        <li><span>1</span><span>request to revoke everywhere</span></li>
+      </ul>
+    </section>
+
+    <section class="demo-wrap" id="demo">
+      <div class="demo" aria-label="Simulated demonstration">
+        <p class="demo-label">One blind call, simulated in your browser. Nothing leaves this page.</p>
+        <div class="demo-keyrow">
+          <input id="demo-key" type="text" value="sk-live-9f2KqZx7" autocomplete="off" spellcheck="false" aria-label="Example key to redact" />
+          <button id="demo-run" type="button">Run blind call</button>
+        </div>
+        <div id="demo-screen" class="demo-screen" aria-live="polite"></div>
+      </div>
+    </section>
+
+    <section class="security" id="security">
+      <h2>Enterprise controls, on from the first request</h2>
+      <div class="security-grid">
+        <article>
+          <h3>Least privilege by default</h3>
+          <p>Scopes like <code>openai:chat</code> or <code>github:create-repo</code> bind each token to named actions. Raw-value reads live behind their own scope, granted only to keys in your terminal.</p>
+        </article>
+        <article>
+          <h3>Identity and sessions</h3>
+          <p>Google sign-in, opaque server-side sessions, one-click logout. Tokens carry expiries and optional IP allowlists; revocation is a single call.</p>
+        </article>
+        <article>
+          <h3>Audit everything</h3>
+          <p>Every store, reveal, proxy call, and revocation records who acted, what ran, and from where — values never included.</p>
+        </article>
+        <article>
+          <h3>Your terminal, scripted</h3>
+          <p>The same API behind the dashboard drives the <code>keyveil</code> CLI, so teams can rotate, scope, and revoke without leaving their workflow.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="cli" id="cli">
+      <h2>Script the whole lifecycle</h2>
+      <div class="codeblock">
+        <button class="copy" type="button" data-copy="cli-snippet">Copy</button>
+<pre id="cli-snippet"><code>npm run cli -- login --token tv_live_…
+npm run cli -- secrets add STRIPE_KEY
+npm run cli -- keys create --name agent --scopes github:create-repo --ttl 90
+npm run cli -- proxy github create-repo -d '{"name":"my-project","isPublic":true}'</code></pre>
+      </div>
+    </section>
+
+    <section class="closing">
+      <h2>Put every key<br />to work</h2>
+      <a class="btn primary" href="./terminal.html#login">Continue with Google</a>
+    </section>
+  </main>
+
+  <footer>
+    <span>KeyVeil runs on Cloudflare Pages, Workers, and D1.</span>
+    <nav>
+      <a href="./terminal.html">Terminal</a>
+      <a href="https://github.com/Parithosh-Varma/keyveil">GitHub</a>
+    </nav>
+  </footer>
+
+  <script src="./landing.js"></script>
 </body>
 </html>
