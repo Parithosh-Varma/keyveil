@@ -313,7 +313,11 @@ a:focus-visible, button:focus-visible, input:focus-visible {
   padding: 3px 12px;
   color: var(--ink);
 }
-.flow-arrow { align-self: center; font-size: 28px; color: var(--accent); font-weight: 700; }
+.flow-box code, .prov code, .callout code, .answer code, .step code, .pillar code {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+.flow-arrow { align-self: center; flex-shrink: 0; font-size: 28px; color: var(--accent); font-weight: 700; }
 .callout {
   background: #fff8f6;
   border: 1px solid #f3c9c0;
@@ -340,6 +344,10 @@ a:focus-visible, button:focus-visible, input:focus-visible {
 
 /* agents */
 .agent-prompt {
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  overflow-wrap: break-word;
   background: var(--card);
   border: 1px solid var(--line);
   border-top: 4px solid var(--accent);
@@ -349,26 +357,34 @@ a:focus-visible, button:focus-visible, input:focus-visible {
 }
 .agent-prompt h3 { color: var(--ink); font-size: 17px; margin: 0 0 6px; }
 .agent-prompt > p { font-size: 14.5px; color: var(--muted); margin: 0 0 12px; }
-.agent-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+.agent-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; min-width: 0; }
+.agent-grid > div { min-width: 0; max-width: 100%; overflow: hidden; }
 .agent-grid h3, .agent-duo h3 { color: var(--ink); font-size: 17px; margin: 0 0 6px; }
 .agent-grid > div > p, .agent-duo > div > p { font-size: 14.5px; color: var(--muted); margin: 0 0 12px; }
 .agent-grid .codeblock pre { max-height: 340px; overflow-y: auto; }
 .agent-grid .codeblock code, .faq .codeblock code { font-size: 12.5px; line-height: 1.75; }
-.agent-duo { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.agent-duo { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; min-width: 0; }
 .agent-duo > div {
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
   background: var(--card);
   border: 1px solid var(--line);
   border-radius: 12px;
   padding: 24px;
 }
-.spec-table { width: 100%; border-collapse: collapse; font-size: 14px; margin-top: 12px; }
-.spec-table th { text-align: left; color: var(--muted); font-weight: 600; font-size: 12.5px; padding: 8px 10px; border-bottom: 1px solid var(--line); }
-.spec-table td { padding: 9px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.spec-table { width: 100%; max-width: 100%; border-collapse: collapse; font-size: 14px; margin-top: 12px; table-layout: fixed; overflow-wrap: anywhere; }
+.spec-table th { text-align: left; color: var(--muted); font-weight: 600; font-size: 12.5px; padding: 8px 10px; border-bottom: 1px solid var(--line); overflow-wrap: anywhere; }
+.spec-table td { padding: 9px 10px; border-bottom: 1px solid var(--line); vertical-align: top; overflow-wrap: anywhere; }
+.spec-table td code, .spec-table th code { overflow-wrap: anywhere; word-break: break-word; }
 .spec-table tr:last-child td { border-bottom: none; }
 
 /* providers */
-.provider-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.provider-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; min-width: 0; }
 .prov {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: break-word;
   background: var(--card);
   border: 1px solid var(--line);
   border-radius: 12px;
@@ -420,8 +436,11 @@ a:focus-visible, button:focus-visible, input:focus-visible {
   margin: 0 0 30px;
   max-width: 18em;
 }
-.security-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+.security-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; min-width: 0; }
 .security-grid article {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: break-word;
   background: var(--card);
   border: 1px solid var(--line);
   border-radius: 12px;
@@ -441,9 +460,11 @@ a:focus-visible, button:focus-visible, input:focus-visible {
   background: var(--ink);
   border-radius: 12px;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+  max-width: 100%;
+  overflow: hidden; /* scroll stays inside the card, never widens the page */
 }
-.codeblock pre { margin: 0; padding: 26px; overflow-x: auto; }
-.codeblock code { font-family: "JetBrains Mono", ui-monospace, monospace; font-size: 14px; line-height: 2; color: #f8f8f7; }
+.codeblock pre { margin: 0; padding: 26px; overflow-x: auto; max-width: 100%; -webkit-overflow-scrolling: touch; }
+.codeblock code { font-family: "JetBrains Mono", ui-monospace, monospace; font-size: 14px; line-height: 2; color: #f8f8f7; overflow-wrap: anywhere; word-break: break-word; }
 .copy {
   position: absolute;
   top: 12px;
@@ -461,15 +482,17 @@ a:focus-visible, button:focus-visible, input:focus-visible {
 .copy:hover { color: #fff; }
 
 /* closing */
-.closing { max-width: 1200px; margin: 0 auto; padding: 110px 32px; }
+.closing { max-width: 1200px; margin: 0 auto; padding: 110px 32px; min-width: 0; }
 .closing h2 {
   font-family: "Montserrat", sans-serif;
   font-weight: 800;
-  font-size: clamp(48px, 8.4vw, 108px);
+  font-size: clamp(40px, 8.4vw, 108px);
   letter-spacing: -0.03em;
   line-height: 0.98;
   color: var(--ink);
   margin: 0 0 34px;
+  max-width: 100%;
+  overflow-wrap: break-word;
 }
 
 footer {
@@ -495,13 +518,18 @@ footer a:hover { color: var(--ink); text-decoration: underline; }
   .cta-row { justify-content: flex-start; }
   .pillars { grid-template-columns: 1fr; }
   .leak-grid, .compare, .cli-steps, .agent-grid, .agent-duo { grid-template-columns: 1fr; }
-  .provider-grid { grid-template-columns: 1fr 1fr; }
+  .provider-grid { grid-template-columns: 1fr; }
   .flow { flex-direction: column; }
   .flow-arrow { transform: rotate(90deg); }
   .stats ul { grid-template-columns: repeat(2, 1fr); }
   .security-grid { grid-template-columns: 1fr; }
   .nav nav a:not(.cta) { display: none; }
   .hero { padding-top: 52px; }
+}
+@media (max-width: 600px) {
+  .block, .hero, .pillars, .stats, .demo-wrap, .security, .closing { padding-left: 20px; padding-right: 20px; }
+  .codeblock pre { padding: 18px; }
+  .agent-duo > div, .flow-box, .leak-grid article, .pillar, .security-grid article { padding: 20px; }
 }
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
