@@ -1,6 +1,16 @@
 import type { Env } from "./types";
 import { TOOLS } from "./types";
-import { authAgent, clientIp, getBearerToken, hasScope, json } from "./lib/auth";
+import {
+  authAgent,
+  clearSessionCookie,
+  clientIp,
+  getBearerToken,
+  getCookie,
+  getSessionUser,
+  hasScope,
+  json,
+  revokeSession,
+} from "./lib/auth";
 import { encryptSecret, fullAgentToken, newAgentToken, sha256Hex } from "./lib/crypto";
 import { audit } from "./lib/vault";
 import { proxyGithubCreateRepo, proxyOpenAiChat } from "./routes/proxy";
@@ -27,10 +37,16 @@ export default {
     if (path === "/v1/tools" && method === "GET") return json({ tools: TOOLS });
     if (path === "/v1/auth/google/start" && method === "GET") return googleStart(req, env);
     if (path === "/v1/auth/google/callback" && method === "GET") return googleCallback(req, env);
+    if (path === "/v1/auth/logout" && method === "POST") return handleLogout(req, env);
 
     if (path === "/v1/secrets" && method === "POST") return handleStoreSecret(req, env);
     if (path === "/v1/secrets" && method === "GET") return handleListSecrets(req, env);
+    const delSecret = path.match(/^\/v1\/secrets\/([A-Z0-9_]{1,64})$/);
+    if (delSecret && method === "DELETE") return handleDeleteSecret(req, env, delSecret[1]);
     if (path === "/v1/agent-keys" && method === "POST") return handleCreateAgentKey(req, env);
+    if (path === "/v1/agent-keys" && method === "GET") return handleListAgentKeys(req, env);
+    const revokeKey = path.match(/^\/v1\/agent-keys\/([\w-]{1,64})\/revoke$/);
+    if (revokeKey && method === "POST") return handleRevokeAgentKey(req, env, revokeKey[1]);
     if (path === "/v1/audit" && method === "GET") return handleAudit(req, env);
 
     const m = path.match(/^\/v1\/proxy\/([\w-]+)\/([\w-]+)$/);
@@ -40,21 +56,16 @@ export default {
   },
 };
 
-async function sessionUserId(req: Request, env: Env): Promise<string | null> {
-  const cookie = req.headers.get("Cookie") || "";
-  const m = cookie.match(/(?:^|;\s*)session=([^;]+)/);
-  if (!m) return null;
-  const [userId, sig] = decodeURIComponent(m[1]).split(".");
-  if (!userId || !sig) return null;
-  const d = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(`${userId}.${env.SESSION_SECRET}`));
-  const expect = [...new Uint8Array(d)].map((b) => b.toString(16).padStart(2, "0")).join("").slice(0, 32);
-  return sig === expect ? userId : null;
-}
-
 async function humanOr401(req: Request, env: Env): Promise<string | Response> {
-  const uid = await sessionUserId(req, env);
+  const uid = await getSessionUser(req, env);
   if (!uid) return json({ error: "login required" }, 401);
   return uid;
+}
+
+async function handleLogout(req: Request, env: Env): Promise<Response> {
+  const id = getCookie(req, "session");
+  if (id) await revokeSession(env, id);
+  return json({ ok: true }, 200, { "Set-Cookie": clearSessionCookie() });
 }
 
 async function handleStoreSecret(req: Request, env: Env): Promise<Response> {
@@ -91,6 +102,23 @@ async function handleListSecrets(req: Request, env: Env): Promise<Response> {
     .all<{ name: string; updated_at: string }>()
     .catch(() => ({ results: [] as { name: string; updated_at: string }[] }));
   return json({ secrets: rows.results });
+}
+
+async function handleDeleteSecret(req: Request, env: Env, name: string): Promise<Response> {
+  const uidOr = await humanOr401(req, env);
+  if (typeof uidOr !== "string") return uidOr;
+  try {
+    if (env.VEIL_KV) await env.VEIL_KV.delete(`u:${uidOr}:s:${name}`);
+    if (env.DB) {
+      await env.DB.prepare("DELETE FROM secrets WHERE user_id = ? AND name = ?")
+        .bind(uidOr, name)
+        .run();
+    }
+  } catch {
+    return json({ error: "delete failed" }, 500);
+  }
+  await audit(env, { user_id: uidOr, actor: "human", action: "secret:delete", provider: name, ok: true, ip: clientIp(req) });
+  return json({ ok: true, name });
 }
 
 async function handleCreateAgentKey(req: Request, env: Env): Promise<Response> {
@@ -130,6 +158,33 @@ async function handleCreateAgentKey(req: Request, env: Env): Promise<Response> {
   return json({ token: fullAgentToken(prefix, secret), prefix, scopes, expires_at: expires });
 }
 
+async function handleListAgentKeys(req: Request, env: Env): Promise<Response> {
+  const uidOr = await humanOr401(req, env);
+  if (typeof uidOr !== "string") return uidOr;
+  // Metadata only — hashes and secrets never leave the server.
+  if (!env.DB) return json({ keys: [] });
+  const rows = await env.DB.prepare(
+    "SELECT id, name, key_prefix, scopes, ip_allowlist, expires_at, revoked_at, created_at FROM agent_keys WHERE user_id = ? ORDER BY created_at DESC"
+  )
+    .bind(uidOr)
+    .all()
+    .catch(() => ({ results: [] }));
+  return json({ keys: rows.results });
+}
+
+async function handleRevokeAgentKey(req: Request, env: Env, id: string): Promise<Response> {
+  const uidOr = await humanOr401(req, env);
+  if (typeof uidOr !== "string") return uidOr;
+  if (env.DB) {
+    await env.DB.prepare("UPDATE agent_keys SET revoked_at = ? WHERE id = ? AND user_id = ?")
+      .bind(new Date().toISOString(), id, uidOr)
+      .run()
+      .catch(() => {});
+  }
+  await audit(env, { user_id: uidOr, actor: "human", action: "agent-key:revoke", ok: true, ip: clientIp(req) });
+  return json({ ok: true, id });
+}
+
 async function handleAudit(req: Request, env: Env): Promise<Response> {
   const uidOr = await humanOr401(req, env);
   if (typeof uidOr !== "string") return uidOr;
@@ -148,6 +203,12 @@ async function handleProxy(req: Request, env: Env, provider: string, action: str
   if (!bearer) return json({ error: "missing bearer" }, 401);
   const authed = await authAgent(req, env);
   if (authed instanceof Response) return authed;
+  // Best-effort per-key rate limit (60/min). In-memory per isolate — also add a
+  // Cloudflare Rate Limiting Rule on /v1/proxy/* for edge-wide enforcement.
+  if (proxyRateLimited(`agent:${authed.row.key_prefix}`)) {
+    await audit(env, { user_id: authed.row.user_id, actor: "agent", provider, action: `${action}:rate-limited`, ok: false, ip: clientIp(req) });
+    return json({ error: "rate limited" }, 429, { "Retry-After": "60" });
+  }
   const body = (await req.json().catch(() => ({}))) as Record<string, never>;
   const need = `${provider}:${action}`;
   const wildcard = `${provider}:*`;
@@ -162,4 +223,18 @@ async function handleProxy(req: Request, env: Env, provider: string, action: str
     return proxyOpenAiChat(req, env, authed.row.user_id, body as { model?: string; input?: string });
   }
   return json({ error: "unknown tool", tools: TOOLS }, 404);
+}
+
+const proxyHits = new Map<string, number[]>();
+
+function proxyRateLimited(key: string, limit = 60, windowMs = 60_000): boolean {
+  const now = Date.now();
+  const hits = (proxyHits.get(key) || []).filter((t) => now - t < windowMs);
+  hits.push(now);
+  proxyHits.set(key, hits);
+  if (proxyHits.size > 5000) {
+    const oldest = proxyHits.keys().next().value;
+    if (oldest) proxyHits.delete(oldest);
+  }
+  return hits.length > limit;
 }
