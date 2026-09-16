@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { API, api, cleanName, describeApiError, setApiBase } from "../lib/kv";
+import { GoogleButton } from "../components/GoogleButton";
 
 interface SecretRow {
   name: string;
@@ -196,7 +197,10 @@ export function Dashboard() {
   if (checking) {
     return (
       <div className="dash">
-        <p className="muted">Checking session…</p>
+        <div className="loading">
+          <span className="spinner" aria-hidden="true" />
+          <p>Checking session…</p>
+        </div>
       </div>
     );
   }
@@ -208,38 +212,65 @@ export function Dashboard() {
           <a className="wordmark" href="./">
             keyveil
           </a>
+          <span className="env-pill">{apiBase.includes("127.0.0.1") ? "local API" : "production"}</span>
         </header>
-        <main className="signin-card">
-          <h1>Sign in to manage your keys</h1>
-          <p>KeyVeil uses your Google account. No passwords to store, sessions stay on the server.</p>
-          <button className="btn primary" type="button" onClick={() => void login()}>
-            Continue with Google
-          </button>
-          {banner && <p className={banner.kind === "err" ? "err" : "ok"}>{banner.text}</p>}
-          <p className="muted small">
-            API endpoint: {apiBase} ·{" "}
-            <button className="linklike" type="button" onClick={() => switchApi("http://127.0.0.1:8787")}>
-              use local
-            </button>
-          </p>
+        <main className="signin-wrap">
+          <div className="signin-card">
+            <p className="eyebrow">KeyVeil dashboard</p>
+            <h1>Sign in to manage your keys</h1>
+            <p className="lede">
+              One Google account, full control: stored secrets, scoped agent tokens, and every event —
+              without ever pasting a key into a chat.
+            </p>
+            <GoogleButton onClick={() => void login()} />
+            {banner && <p className={banner.kind === "err" ? "err" : "ok"}>{banner.text}</p>}
+            <ul className="signin-points">
+              <li>AES-256-GCM encryption at rest</li>
+              <li>Scoped, expiring agent tokens</li>
+              <li>Every reveal audit-logged</li>
+            </ul>
+            <p className="muted small">
+              Pointing at {apiBase} ·{" "}
+              <button className="linklike" type="button" onClick={() => switchApi("http://127.0.0.1:8787")}>
+                use local API
+              </button>
+            </p>
+          </div>
         </main>
       </div>
     );
   }
 
+  const activeKeys = keys.filter((k) => !k.revoked_at).length;
+
   return (
     <div className="dash">
-      <header className="dash-nav">
+      <header className="dash-nav sticky">
         <a className="wordmark" href="./">
           keyveil
         </a>
+        <nav className="dash-links">
+          <a href="#secrets">Keys</a>
+          <a href="#agents">Agents</a>
+          <a href="#activity">Activity</a>
+        </nav>
         <div className="dash-user">
-          <span className="muted small">{userId}</span>
+          <span className="env-pill">{apiBase.includes("127.0.0.1") ? "local API" : "production"}</span>
+          <span className="user-chip" title={userId}>
+            {userId.slice(0, 2).toUpperCase()}
+          </span>
           <button className="btn" type="button" onClick={() => void logout()}>
             Log out
           </button>
         </div>
       </header>
+
+      <div className="page-head">
+        <div>
+          <h1>Dashboard</h1>
+          <p className="muted">Signed in as {userId}</p>
+        </div>
+      </div>
 
       {banner && (
         <p className={`banner ${banner.kind}`} role="status">
@@ -247,21 +278,41 @@ export function Dashboard() {
         </p>
       )}
 
+      <section className="stats" aria-label="Overview">
+        <div className="stat">
+          <span className="stat-num">{secrets.length}</span>
+          <span className="stat-label">API keys stored</span>
+        </div>
+        <div className="stat">
+          <span className="stat-num">{activeKeys}</span>
+          <span className="stat-label">Active agent keys</span>
+        </div>
+        <div className="stat">
+          <span className="stat-num">{audit.length}</span>
+          <span className="stat-label">Events logged</span>
+        </div>
+      </section>
+
       <main className="dash-grid">
-        <section className="card">
+        <section className="card" id="secrets">
           <div className="card-head">
-            <h2>API keys</h2>
-            <span className="muted small">{secrets.length} stored · values never listed</span>
+            <div>
+              <h2>API keys</h2>
+              <p className="muted small card-sub">Encrypted at rest. Names listed, values never.</p>
+            </div>
           </div>
           <form className="row-form" onSubmit={(e) => void addSecret(e)}>
             <input value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="NAME_LIKE_THIS" aria-label="Secret name" />
-            <input value={newValue} onChange={(e) => setNewValue(e.target.value)} placeholder="Value (hidden from logs)" type="password" aria-label="Secret value" />
+            <input value={newValue} onChange={(e) => setNewValue(e.target.value)} placeholder="Value — hidden from logs" type="password" aria-label="Secret value" />
             <button className="btn primary" type="submit">
-              Store
+              Store key
             </button>
           </form>
           {secrets.length === 0 ? (
-            <p className="muted">No keys yet. Store your first one above.</p>
+            <div className="empty">
+              <p>No keys yet.</p>
+              <p className="muted small">Store your first one above — it is encrypted before it touches the database.</p>
+            </div>
           ) : (
             <table>
               <thead>
@@ -303,13 +354,15 @@ export function Dashboard() {
               </tbody>
             </table>
           )}
-          <p className="muted small">Reveals are audit-logged. Agents should use proxy calls, never raw values.</p>
+          <p className="foot-note">Reveals are audit-logged. Agents should use proxy calls, never raw values.</p>
         </section>
 
-        <section className="card">
+        <section className="card" id="agents">
           <div className="card-head">
-            <h2>Agent keys</h2>
-            <span className="muted small">tokens shown once · hashes stored</span>
+            <div>
+              <h2>Agent keys</h2>
+              <p className="muted small card-sub">Tokens are shown once. Only hashes are stored.</p>
+            </div>
           </div>
           <form className="key-form" onSubmit={(e) => void createKey(e)}>
             <label>
@@ -317,14 +370,14 @@ export function Dashboard() {
               <input value={keyName} onChange={(e) => setKeyName(e.target.value)} />
             </label>
             <label>
-              Scopes (comma separated)
-              <input value={keyScopes} onChange={(e) => setKeyScopes(e.target.value)} />
-            </label>
-            <label>
               Expires in days
               <input value={keyTtl} onChange={(e) => setKeyTtl(e.target.value)} inputMode="numeric" />
             </label>
-            <label>
+            <label className="wide">
+              Scopes (comma separated)
+              <input value={keyScopes} onChange={(e) => setKeyScopes(e.target.value)} />
+            </label>
+            <label className="wide">
               IP allowlist (optional, comma separated)
               <input value={keyIps} onChange={(e) => setKeyIps(e.target.value)} placeholder="203.0.113.7" />
             </label>
@@ -339,14 +392,17 @@ export function Dashboard() {
               </p>
               <code>{createdToken.token}</code>
               <div>
-                <button className="btn" type="button" onClick={() => void copy(createdToken.token, "Token")}>
+                <button className="btn light" type="button" onClick={() => void copy(createdToken.token, "Token")}>
                   Copy token
                 </button>
               </div>
             </div>
           )}
           {keys.length === 0 ? (
-            <p className="muted">No agent keys yet.</p>
+            <div className="empty">
+              <p>No agent keys yet.</p>
+              <p className="muted small">Create one for each agent or terminal that needs access.</p>
+            </div>
           ) : (
             <table>
               <thead>
@@ -381,13 +437,18 @@ export function Dashboard() {
           )}
         </section>
 
-        <section className="card">
+        <section className="card" id="activity">
           <div className="card-head">
-            <h2>Recent activity</h2>
-            <span className="muted small">values never appear here</span>
+            <div>
+              <h2>Recent activity</h2>
+              <p className="muted small card-sub">Values never appear here.</p>
+            </div>
           </div>
           {audit.length === 0 ? (
-            <p className="muted">No events yet.</p>
+            <div className="empty">
+              <p>No events yet.</p>
+              <p className="muted small">Stores, reveals, proxy calls, and revocations will show up here.</p>
+            </div>
           ) : (
             <table>
               <thead>
@@ -416,7 +477,10 @@ export function Dashboard() {
 
         <section className="card">
           <div className="card-head">
-            <h2>Available proxy actions</h2>
+            <div>
+              <h2>Available proxy actions</h2>
+              <p className="muted small card-sub">What scoped tokens are allowed to call.</p>
+            </div>
           </div>
           {tools.length === 0 ? (
             <p className="muted">No tools registered.</p>
@@ -432,7 +496,7 @@ export function Dashboard() {
               ))}
             </ul>
           )}
-          <p className="muted small">
+          <p className="foot-note">
             API endpoint: {apiBase} ·{" "}
             <button className="linklike" type="button" onClick={() => switchApi("http://127.0.0.1:8787")}>
               use local

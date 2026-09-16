@@ -1,4 +1,5 @@
 import { Demo } from "./Demo";
+import { GoogleLogo } from "../components/GoogleButton";
 
 export function Landing() {
   return (
@@ -32,8 +33,9 @@ export function Landing() {
               call run through a proxy that injects the secret server-side.
             </p>
             <div className="cta-row">
-              <a className="btn primary" href="./dashboard.html#login">
-                Continue with Google
+              <a className="btn google" href="./dashboard.html#login">
+                <GoogleLogo />
+                <span>Continue with Google</span>
               </a>
               <a className="btn" href="#demo">
                 See one blind call
@@ -151,8 +153,9 @@ npm run cli -- proxy github create-repo -d '{"name":"my-project","isPublic":true
             <br />
             to work
           </h2>
-          <a className="btn primary" href="./dashboard.html#login">
-            Continue with Google
+          <a className="btn google" href="./dashboard.html#login">
+            <GoogleLogo />
+            <span>Continue with Google</span>
           </a>
         </section>
       </main>
