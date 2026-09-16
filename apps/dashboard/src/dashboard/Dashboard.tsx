@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   API,
   api,
@@ -107,6 +107,11 @@ export function Dashboard() {
 
   const [audit, setAudit] = useState<AuditRow[]>([]);
   const [tools, setTools] = useState<ToolRow[]>([]);
+
+  const activeKeys = keys.filter((k) => !k.revoked_at).length;
+  const secretsCount = useCountUp(secrets.length);
+  const keysCount = useCountUp(activeKeys);
+  const auditCount = useCountUp(audit.length);
 
   function note(kind: "err" | "ok", text: string) {
     setBanner({ kind, text });
@@ -320,7 +325,6 @@ export function Dashboard() {
     );
   }
 
-  const activeKeys = keys.filter((k) => !k.revoked_at).length;
   const initials = (me.name || me.user_id).slice(0, 2).toUpperCase();
 
   return (
@@ -380,15 +384,15 @@ export function Dashboard() {
 
         <section className="stats" aria-label="Overview">
           <div className="stat">
-            <span className="stat-num">{secrets.length}</span>
+            <span className="stat-num">{secretsCount}</span>
             <span className="stat-label">API keys stored</span>
           </div>
           <div className="stat">
-            <span className="stat-num">{activeKeys}</span>
+            <span className="stat-num">{keysCount}</span>
             <span className="stat-label">Active agent keys</span>
           </div>
           <div className="stat">
-            <span className="stat-num">{audit.length}</span>
+            <span className="stat-num">{auditCount}</span>
             <span className="stat-label">Events logged</span>
           </div>
         </section>
@@ -625,6 +629,31 @@ function viewSub(view: string): string {
     default:
       return "Encrypted at rest. Names listed, values never.";
   }
+}
+
+/** Eased count-up for stat numbers. Jumps straight under reduced motion. */
+function useCountUp(target: number): number {
+  const [val, setVal] = useState(0);
+  const reduce = useRef(
+    typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches
+  );
+  useEffect(() => {
+    if (reduce.current) {
+      setVal(target);
+      return;
+    }
+    let raf = 0;
+    const start = performance.now();
+    const dur = 650;
+    const tick = (t: number) => {
+      const p = Math.min(1, (t - start) / dur);
+      setVal(Math.round(target * (1 - Math.pow(1 - p, 3))));
+      if (p < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [target]);
+  return val;
 }
 
 function shortScopes(raw: string): string {

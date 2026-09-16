@@ -445,3 +445,56 @@ input:focus { border-color: var(--accent); outline: none; box-shadow: 0 0 0 3px 
 @media (prefers-reduced-motion: reduce) {
   .spinner { animation: none; }
 }
+
+/* ------- motion: entrances, buttons, reveals (all stilled below for reduced motion) ------- */
+@keyframes rise {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes pop-in {
+  from { opacity: 0; transform: scale(0.98) translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes slide-down {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* entrance: stats stagger, cards rise on view switch (they remount) */
+.stats > * { animation: rise 0.45s cubic-bezier(0.21, 0.9, 0.25, 1) both; }
+.stats > *:nth-child(2) { animation-delay: 0.07s; }
+.stats > *:nth-child(3) { animation-delay: 0.14s; }
+section.card { animation: rise 0.45s cubic-bezier(0.21, 0.9, 0.25, 1) both; }
+.signin-card { animation: rise 0.5s cubic-bezier(0.21, 0.9, 0.25, 1) both; }
+.side-nav > * { animation: rise 0.4s cubic-bezier(0.21, 0.9, 0.25, 1) both; }
+.side-nav > *:nth-child(2) { animation-delay: 0.05s; }
+.side-nav > *:nth-child(3) { animation-delay: 0.1s; }
+.side-nav > *:nth-child(4) { animation-delay: 0.15s; }
+
+/* moments: banners drop in, one-time secrets pop */
+.banner { animation: slide-down 0.3s ease both; }
+.token-once { animation: pop-in 0.35s cubic-bezier(0.21, 0.9, 0.25, 1) both; }
+.revealed { animation: pop-in 0.25s ease both; }
+
+/* buttons: pressable */
+.btn { transition: transform 0.12s ease, background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.2s ease; }
+.btn:active { transform: scale(0.96); }
+.btn.primary:hover { box-shadow: 0 6px 16px -8px rgba(12, 10, 9, 0.5); transform: translateY(-1px); }
+.btn.primary:active { transform: translateY(0) scale(0.97); box-shadow: none; }
+.linklike { transition: color 0.12s ease; }
+
+/* sidebar rows glide */
+.side-item { transition: background-color 0.15s ease, color 0.15s ease, transform 0.15s ease; }
+.side-item:hover { transform: translateX(2px); }
+.side-item.active { transition: background-color 0.2s ease, color 0.2s ease, transform 0.15s ease; }
+
+/* table rows settle */
+tbody tr { animation: rise 0.3s ease both; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
