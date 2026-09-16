@@ -14,6 +14,7 @@ CREATE TABLE IF NOT EXISTS secrets (
   user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   name TEXT NOT NULL,
   ciphertext TEXT NOT NULL,
+  hint TEXT,
   updated_at TEXT NOT NULL,
   UNIQUE(user_id, name)
 );

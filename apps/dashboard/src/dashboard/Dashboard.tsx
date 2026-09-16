@@ -12,7 +12,9 @@ import { GoogleButton } from "../../../shared/GoogleButton";
 
 interface SecretRow {
   name: string;
+  preview: string | null;
   updated_at: string;
+  last_used: string | null;
 }
 interface KeyRow {
   id: string;
@@ -100,7 +102,6 @@ export function Dashboard() {
 
   const [keys, setKeys] = useState<KeyRow[]>([]);
   const [keyName, setKeyName] = useState("opencode");
-  const [keyScopes, setKeyScopes] = useState("github:create-repo,openai:chat");
   const [keyTtl, setKeyTtl] = useState("90");
   const [keyIps, setKeyIps] = useState("");
   const [createdToken, setCreatedToken] = useState<{ id: string; prefix: string; token: string } | null>(null);
@@ -258,13 +259,11 @@ export function Dashboard() {
 
   async function createKey(e: React.FormEvent) {
     e.preventDefault();
-    const scopes = keyScopes.split(",").map((s) => s.trim()).filter(Boolean);
-    if (!scopes.length) return note("err", "Give the key at least one scope.");
     const ips = keyIps.split(",").map((s) => s.trim()).filter(Boolean);
     try {
       const r = await api<{ id: string; prefix: string; token: string; scopes: string[] }>("/v1/agent-keys", {
         method: "POST",
-        body: { name: keyName.trim() || "terminal", scopes, ttl_days: Number(keyTtl) || 90, ip_allowlist: ips },
+        body: { name: keyName.trim() || "terminal", ttl_days: Number(keyTtl) || 90, ip_allowlist: ips },
       });
       setCreatedToken({ id: r.id, prefix: r.prefix, token: r.token });
       note("ok", "Key created — copy the token now, it is shown once.");
@@ -443,6 +442,7 @@ export function Dashboard() {
                 <thead>
                   <tr>
                     <th>Name</th>
+                    <th>Preview</th>
                     <th>Updated</th>
                     <th>Value</th>
                     <th></th>
@@ -453,6 +453,9 @@ export function Dashboard() {
                     <tr key={s.name}>
                       <td>
                         <code>{s.name}</code>
+                      </td>
+                      <td className="muted small">
+                        <code>{s.preview || "—"}</code>
                       </td>
                       <td className="muted small">{s.updated_at?.slice(0, 10) || "—"}</td>
                       <td>
@@ -494,10 +497,10 @@ export function Dashboard() {
                 Expires in days
                 <input value={keyTtl} onChange={(e) => setKeyTtl(e.target.value)} inputMode="numeric" />
               </label>
-              <label className="wide">
-                Scopes (comma separated)
-                <input value={keyScopes} onChange={(e) => setKeyScopes(e.target.value)} />
-              </label>
+              <p className="muted small wide">
+                Scoped automatically: blind proxy only (<code>github:create-repo</code>,{" "}
+                <code>openai:chat</code>). Scopes lock at creation and can't be widened later.
+              </p>
               <label className="wide">
                 IP allowlist (optional, comma separated)
                 <input value={keyIps} onChange={(e) => setKeyIps(e.target.value)} placeholder="203.0.113.7" />

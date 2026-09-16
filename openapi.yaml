@@ -29,7 +29,7 @@ paths:
     get:
       summary: List secret names (metadata only, session or Bearer)
       responses:
-        '200': { description: secrets }
+        '200': { description: "secrets: [{name, preview (masked sk-…c123), updated_at, last_used}]" }
     post:
       summary: Store/overwrite a secret (AES-GCM server-side)
       requestBody:

@@ -10,7 +10,10 @@ async function secretsCommand(sub, args, opts) {
   const ctx = context(opts);
   if (sub === "list") {
     const { secrets } = await api("/v1/secrets", { ctx });
-    printTable(secrets || [], ["name", "updated_at"]);
+    printTable(
+      (secrets || []).map((s) => ({ ...s, preview: s.preview || "—", last_used: s.last_used || "—" })),
+      ["name", "preview", "updated_at", "last_used"]
+    );
   } else if (sub === "add") {
     const name = cleanName(args.name);
     const value = (opts.value !== undefined ? opts.value : await prompt(`Value for ${name} (hidden): `, { hidden: true })).trim();

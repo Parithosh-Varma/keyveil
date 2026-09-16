@@ -4,8 +4,15 @@
   "description": "KeyVeil terminal CLI: manage secrets and agent keys, blind proxy calls",
   "type": "commonjs",
   "bin": {
-    "keyveil": "./bin/keyveil.js"
+    "keyveil": "bin/keyveil.js"
   },
+  "files": ["bin", "src"],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Parithosh-Varma/keyveil.git",
+    "directory": "packages/cli"
+  },
+  "homepage": "https://keyveil.pages.dev/#cli",
   "scripts": {
     "test": "node --test test/*.test.js"
   },

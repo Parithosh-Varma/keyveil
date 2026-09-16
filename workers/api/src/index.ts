@@ -184,13 +184,14 @@ async function handleStoreSecret(req: Request, env: Env): Promise<Response> {
   const value = body.value || "";
   if (!name || value.length < 3 || value.length > 20000) return json({ error: "bad name/value" }, 400);
   const ct = await encryptSecret(env, value);
+  const hint = `${value.slice(0, 3)}…${value.slice(-4)}`;
   try {
     if (env.VEIL_KV) await env.VEIL_KV.put(`u:${actor.userId}:s:${name}`, ct);
     if (env.DB) {
       await env.DB.prepare(
-        "INSERT INTO secrets (id, user_id, name, ciphertext, updated_at) VALUES (?, ?, ?, ?, ?) ON CONFLICT(user_id, name) DO UPDATE SET ciphertext=excluded.ciphertext, updated_at=excluded.updated_at"
+        "INSERT INTO secrets (id, user_id, name, ciphertext, hint, updated_at) VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT(user_id, name) DO UPDATE SET ciphertext=excluded.ciphertext, hint=excluded.hint, updated_at=excluded.updated_at"
       )
-        .bind(crypto.randomUUID(), actor.userId, name, ct, new Date().toISOString())
+        .bind(crypto.randomUUID(), actor.userId, name, ct, hint, new Date().toISOString())
         .run();
     }
   } catch (e) {
@@ -203,13 +204,33 @@ async function handleStoreSecret(req: Request, env: Env): Promise<Response> {
 async function handleListSecrets(req: Request, env: Env): Promise<Response> {
   const actorOr = await resolveUser(req, env);
   if (actorOr instanceof Response) return actorOr;
-  // Metadata only — never return values.
+  // Metadata only — never return values. hint is a masked preview (sk-…c123),
+  // last_used is the newest audit timestamp touching that secret name.
   if (!env.DB) return json({ secrets: [] });
-  const rows = await env.DB.prepare("SELECT name, updated_at FROM secrets WHERE user_id = ? ORDER BY name")
+  const rows = await env.DB.prepare("SELECT name, hint, updated_at FROM secrets WHERE user_id = ? ORDER BY name")
     .bind(actorOr.userId)
-    .all<{ name: string; updated_at: string }>()
-    .catch(() => ({ results: [] as { name: string; updated_at: string }[] }));
-  return json({ secrets: rows.results });
+    .all<{ name: string; hint: string | null; updated_at: string }>()
+    .catch(() => ({ results: [] as { name: string; hint: string | null; updated_at: string }[] }));
+  let lastUsed: Record<string, string> = {};
+  if (rows.results.length) {
+    const names = rows.results.map((r) => r.name);
+    const placeholders = names.map(() => "?").join(",");
+    const used = await env.DB.prepare(
+      `SELECT provider, MAX(created_at) AS last_used FROM audit_log WHERE user_id = ? AND provider IN (${placeholders}) GROUP BY provider`
+    )
+      .bind(actorOr.userId, ...names)
+      .all<{ provider: string; last_used: string }>()
+      .catch(() => ({ results: [] as { provider: string; last_used: string }[] }));
+    for (const u of used.results) lastUsed[u.provider] = u.last_used;
+  }
+  return json({
+    secrets: rows.results.map((r) => ({
+      name: r.name,
+      preview: r.hint || null,
+      updated_at: r.updated_at,
+      last_used: lastUsed[r.name] || null,
+    })),
+  });
 }
 
 async function handleRevealSecret(req: Request, env: Env, name: string): Promise<Response> {
@@ -266,7 +287,15 @@ async function handleCreateAgentKey(req: Request, env: Env): Promise<Response> {
   const { publicId: _p, secret, prefix } = newAgentToken();
   void _p;
   const hash = await sha256Hex(secret);
-  const scopes = Array.isArray(body.scopes) && body.scopes.length ? body.scopes.slice(0, 20) : ["github:create-repo"];
+  // Scopes are decided at mint time and frozen after. Agent callers inherit
+  // their own scopes (a key can never mint a broader key than itself).
+  // Human callers get blind-proxy-only unless they pass explicit scopes (CLI).
+  const scopes =
+    actor.via === "agent"
+      ? actor.scopes
+      : Array.isArray(body.scopes) && body.scopes.length
+        ? body.scopes.slice(0, 20)
+        : ["github:create-repo", "openai:chat"];
   const expires = body.ttl_days ? new Date(Date.now() + body.ttl_days * 864e5).toISOString() : null;
   const keyId = crypto.randomUUID();
   if (env.DB) {

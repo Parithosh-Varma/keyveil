@@ -6,6 +6,7 @@ const { loginCommand } = require("../src/commands/login");
 const { secretsCommand } = require("../src/commands/secrets");
 const { keysCommand } = require("../src/commands/keys");
 const { proxyCommand } = require("../src/commands/proxy");
+const { auditCommand } = require("../src/commands/audit");
 
 const program = new Command();
 program.name("keyveil").description("Manage KeyVeil secrets and agent keys from your terminal").version(version);
@@ -51,7 +52,7 @@ keys
   .command("create")
   .description("Create a key — full token printed ONCE")
   .option("--name <name>", "key label", "terminal")
-  .option("--scopes <csv>", "comma-separated scopes", "secrets:reveal,keys:manage,audit:read")
+  .option("--scopes <csv>", "explicit scopes (omit for proxy-only default; terminal keys need secrets:reveal,keys:manage,audit:read)", "")
   .option("--ttl <days>", "expiry in days", "90")
   .option("--ips <csv>", "optional IP allowlist")
   .option("--api <url>")
@@ -68,6 +69,12 @@ program
   .option("-d, --data <json>", "JSON args for the action", "{}")
   .option("--api <url>")
   .action((provider, action, opts) => proxyCommand(provider, action, opts).catch(fail));
+
+program
+  .command("audit")
+  .description("Show the audit log (needs audit:read scope — values never included)")
+  .option("--api <url>")
+  .action((opts) => auditCommand(opts).catch(fail));
 
 program.parse(process.argv);
 

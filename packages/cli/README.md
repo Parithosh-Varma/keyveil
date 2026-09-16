@@ -5,12 +5,14 @@ Part of the [KeyVeil](https://github.com/Parithosh-Varma/keyveil) monorepo (`pac
 ## Install
 
 ```bash
-# from the repo root
+npm i -g keyveil
+```
+
+From source instead (repo root):
+
+```bash
 npm install
-
-# run via workspace
 npm run cli -- <command>
-
 # or link globally once
 npm link --workspace packages/cli
 keyveil --help
@@ -41,11 +43,14 @@ keyveil secrets delete OLD_TOKEN
 
 ```bash
 keyveil keys list
-keyveil keys create --name opencode --scopes 'github:create-repo,openai:chat' --ttl 90 [--ips '1.2.3.4']
+keyveil keys create --name opencode --ttl 90 [--ips '1.2.3.4']   # proxy-only scopes, locked at creation
+keyveil keys create --name terminal --scopes 'secrets:reveal,keys:manage,audit:read' --ttl 90
 keyveil keys revoke <id>
 ```
 
-Scopes: any `provider:action` proxy scope, plus `secrets:reveal`, `keys:manage`, `audit:read`, or `*`. Only grant `secrets:reveal` to keys that live in your own terminal — never to a shared agent.
+Scopes lock at creation and can't be widened later. Omit `--scopes` for the proxy-only default
+(`openai:chat`, `github:create-repo`); agent-created keys inherit the creator's scopes. Only grant
+`secrets:reveal` to keys that live in your own terminal — never to a shared agent.
 
 ## Blind proxy (agents use keys without seeing them)
 
@@ -53,6 +58,12 @@ Scopes: any `provider:action` proxy scope, plus `secrets:reveal`, `keys:manage`,
 keyveil proxy github create-repo -d '{"name":"my-project","isPublic":true}'
 keyveil proxy openai chat -d '{"model":"gpt-4o-mini","input":"hello"}'
 keyveil proxy --help
+```
+
+## Audit (needs `audit:read` scope)
+
+```bash
+keyveil audit     # timestamp, actor, provider, action, result — values never included
 ```
 
 ## Test
