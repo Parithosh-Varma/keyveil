@@ -3,8 +3,8 @@ main = "src/index.ts"
 compatibility_date = "2024-11-01"
 
 [vars]
-WEB_BASE_URL = "https://keyveil.pages.dev"
-DASHBOARD_URL = "https://keyveil-dashboard.pages.dev"
+WEB_BASE_URL = "https://www.keyveil.run.place"
+DASHBOARD_URL = "https://dashboard.keyveil.run.place"
 
 # Fill these after `wrangler d1 create` / `wrangler kv:namespace create`
 [[d1_databases]]
