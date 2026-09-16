@@ -92,11 +92,13 @@ paths:
       summary: Last 100 events — needs audit:read scope (no secret values)
       responses:
         '200': { description: audit }
-  /v1/auth/logout:
-    post:
-      summary: Revoke the current session
+  /v1/auth/google/start:
+    get:
+      summary: Begin login — optional ?s= dashboard-generated state (cookie-less)
+      parameters:
+        - { name: s, in: query, required: false, schema: { type: string } }
       responses:
-        '200': { description: ok }
+        '200': { description: Google OAuth URL (state echoed) }
   /v1/auth/grant:
     post:
       summary: Trade a one-time login grant for a session bearer (cookie-less frontends)
@@ -112,6 +114,11 @@ paths:
       responses:
         '200': { description: session_token (Bearer sess_...) }
         '401': { description: invalid or expired grant }
+  /v1/auth/logout:
+    post:
+      summary: Revoke the current session
+      responses:
+        '200': { description: ok }
   /v1/proxy/github/create-repo:
     post:
       summary: Create GitHub repo (injects GITHUB_TOKEN server-side)

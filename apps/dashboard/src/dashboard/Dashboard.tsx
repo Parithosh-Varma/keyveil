@@ -148,17 +148,31 @@ export function Dashboard() {
       }
       const grant = params.get("grant");
       if (grant) {
-        // Cookie-less handoff: trade the one-time grant for a session token.
+        // Cookie-less handoff: trade the one-time grant for a session token,
+        // but only if the echoed state matches the one this tab generated.
+        // A state an attacker initiated can never complete here.
+        const echoed = params.get("state") || "";
+        let expected = "";
         try {
-          const r = await api<{ session_token: string }>("/v1/auth/grant", {
-            method: "POST",
-            body: { code: grant },
-          });
-          saveSessionToken(r.session_token);
+          expected = localStorage.getItem("kv_oauth_state") || "";
+          localStorage.removeItem("kv_oauth_state");
         } catch {
-          note("err", "Sign-in handoff expired — please sign in again.");
+          /* private mode */
         }
         history.replaceState(null, "", location.pathname);
+        if (!expected || echoed !== expected) {
+          note("err", "Sign-in response did not match this tab — please sign in again.");
+        } else {
+          try {
+            const r = await api<{ session_token: string }>("/v1/auth/grant", {
+              method: "POST",
+              body: { code: grant },
+            });
+            saveSessionToken(r.session_token);
+          } catch {
+            note("err", "Sign-in handoff expired — please sign in again.");
+          }
+        }
       } else if (params.get("login") === "ok") {
         history.replaceState(null, "", location.pathname);
         note("ok", "Signed in with Google.");
@@ -169,7 +183,17 @@ export function Dashboard() {
 
   async function login() {
     try {
-      const r = await api<{ url: string }>("/v1/auth/google/start");
+      // This tab's own CSRF state: random, stored locally, recorded server-side.
+      const bytes = crypto.getRandomValues(new Uint8Array(24));
+      let s = "";
+      for (const b of bytes) s += String.fromCharCode(b);
+      const state = btoa(s).replace(/\+/g, "-").replace(/\//g, "_").replace(/=/g, "");
+      try {
+        localStorage.setItem("kv_oauth_state", state);
+      } catch {
+        /* private mode */
+      }
+      const r = await api<{ url: string }>(`/v1/auth/google/start?s=${state}`);
       location.href = r.url;
     } catch (e) {
       note("err", describeApiError(e, "Login"));

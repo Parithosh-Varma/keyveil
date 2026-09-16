@@ -141,8 +141,7 @@ export function getBearerSessionId(req: Request): string | null {
   return /^[\w-]{20,}$/.test(id) ? id : null;
 }
 
-/** One-time login grant: exchanged for a session within 5 minutes. */
-export async function createGrant(env: Env, userId: string): Promise<string> {
+/** One-time login grant: exchanged for a session within 5 minutes. */export async function createGrant(env: Env, userId: string): Promise<string> {
   if (!env.DB) throw new Error("DB not bound");
   const code = randomToken();
   const now = Date.now();
@@ -190,4 +189,39 @@ export function sessionCookie(id: string): string {
 
 export function clearSessionCookie(): string {
   return `session=; Path=/; HttpOnly; Secure; SameSite=None; Partitioned; Max-Age=0`;
+}
+
+/** Server-side OAuth state (cookie-less CSRF protection).
+ *  The dashboard generates a random state, the worker records it at /start,
+ *  Google echoes it to /callback, and the worker consumes it exactly once.
+ *  The dashboard additionally echo-checks it, so a state an attacker
+ *  initiated can never complete inside the victim's tab. */
+export function validClientState(s: string): boolean {
+  return /^[\w-]{20,64}$/.test(s);
+}
+
+export async function storeLoginState(env: Env, state: string): Promise<void> {
+  if (!env.DB) return;
+  const now = Date.now();
+  await env.DB.prepare("INSERT INTO oauth_states (state, created_at, expires_at) VALUES (?, ?, ?)")
+    .bind(state, new Date(now).toISOString(), new Date(now + 10 * 60_000).toISOString())
+    .run()
+    .catch(() => null);
+  // Opportunistic expiry sweep.
+  await env.DB.prepare("DELETE FROM oauth_states WHERE expires_at < ?")
+    .bind(new Date(now).toISOString())
+    .run()
+    .catch(() => null);
+}
+
+/** Returns true once per state; false when unknown, expired, or reused. */
+export async function consumeLoginState(env: Env, state: string): Promise<boolean> {
+  if (!env.DB || !validClientState(state)) return false;
+  const row = await env.DB.prepare("SELECT expires_at FROM oauth_states WHERE state = ? LIMIT 1")
+    .bind(state)
+    .first<{ expires_at: string }>()
+    .catch(() => null);
+  if (!row) return false;
+  await env.DB.prepare("DELETE FROM oauth_states WHERE state = ?").bind(state).run().catch(() => null);
+  return new Date(row.expires_at).getTime() >= Date.now();
 }
