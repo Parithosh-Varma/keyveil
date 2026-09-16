@@ -52,6 +52,9 @@ function withCors(req: Request, env: Env, res: Response): Response {
   h.set("X-Content-Type-Options", "nosniff");
   h.set("Referrer-Policy", "no-referrer");
   h.set("X-Frame-Options", "DENY");
+  h.set("Strict-Transport-Security", "max-age=63072000; includeSubDomains; preload");
+  h.set("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
+  if (!h.has("Cache-Control")) h.set("Cache-Control", "no-store");
   return new Response(res.body, { status: res.status, statusText: res.statusText, headers: h });
 }
 
@@ -69,6 +72,30 @@ async function handle(req: Request, env: Env): Promise<Response> {
           "Access-Control-Max-Age": "86400",
         },
       });
+    }
+
+    // Cookie-authed mutations are CSRF-able in browsers without CHIPS
+    // partition support: when a session cookie is present and the browser
+    // supplies an Origin/Referer, it must be one of our frontends.
+    if ((method === "POST" || method === "DELETE") && getCookie(req, "session")) {
+      if (!sameSiteFrontend(req, env)) return json({ error: "cross-site request refused" }, 403);
+    }
+
+    // Per-IP rate limits for auth + secret/key writes (best-effort per
+    // isolate — pair with a Cloudflare Rate Limiting Rule for edge-wide
+    // enforcement). Reads stay unlimited for dashboard usability.
+    const ip = clientIp(req);
+    if (path === "/v1/auth/google/start" && method === "GET" && limited(`rl:start:${ip}`, 30)) {
+      return json({ error: "rate limited" }, 429, { "Retry-After": "60" });
+    }
+    if (path === "/v1/auth/grant" && method === "POST" && limited(`rl:grant:${ip}`, 30)) {
+      return json({ error: "rate limited" }, 429, { "Retry-After": "60" });
+    }
+    if (path === "/v1/secrets" && method === "POST" && limited(`rl:store:${ip}`, 30)) {
+      return json({ error: "rate limited" }, 429, { "Retry-After": "60" });
+    }
+    if (path === "/v1/agent-keys" && method === "POST" && limited(`rl:mkkey:${ip}`, 20)) {
+      return json({ error: "rate limited" }, 429, { "Retry-After": "60" });
     }
 
     if (path === "/health" && method === "GET") return json({ ok: true });
@@ -184,7 +211,9 @@ async function handleStoreSecret(req: Request, env: Env): Promise<Response> {
   const value = body.value || "";
   if (!name || value.length < 3 || value.length > 20000) return json({ error: "bad name/value" }, 400);
   const ct = await encryptSecret(env, value);
-  const hint = `${value.slice(0, 3)}…${value.slice(-4)}`;
+  // Stripe-style preview: last 4 chars only. Never the leading bytes — those
+  // carry the most entropy for keys like sk-... and help nobody in a list.
+  const hint = `…${value.slice(-4)}`;
   try {
     if (env.VEIL_KV) await env.VEIL_KV.put(`u:${actor.userId}:s:${name}`, ct);
     if (env.DB) {
@@ -284,6 +313,23 @@ async function handleCreateAgentKey(req: Request, env: Env): Promise<Response> {
     ip_allowlist?: string[];
     ttl_days?: number;
   };
+  // Clamp TTL to 1–365 days (default 90). Unclamped input allowed ttl=0 to
+  // mint a never-expiring key, negatives to mint dead keys, and huge values
+  // to overflow Date — all of which surprise the owner. Omitted/NaN keeps
+  // the 90-day default (the CLI always sends an explicit value).
+  const ttlMissing = body.ttl_days === null || body.ttl_days === undefined;
+  const ttlDays = ttlMissing
+    ? 90
+    : Math.min(Math.max(Math.floor(Number(body.ttl_days)) || 90, 1), 365);
+  // Validate the IP allowlist: exact IPv4 or x.x.x.0/24 only. Anything else
+  // would fail closed at auth time and silently lock the owner out, so
+  // reject it loudly here instead.
+  const ipAllow = Array.isArray(body.ip_allowlist) ? body.ip_allowlist.slice(0, 20) : [];
+  for (const rule of ipAllow) {
+    if (typeof rule !== "string" || !validIpRule(rule)) {
+      return json({ error: "bad ip_allowlist — use IPv4 or x.x.x.0/24" }, 400);
+    }
+  }
   const { publicId: _p, secret, prefix } = newAgentToken();
   void _p;
   const hash = await sha256Hex(secret);
@@ -296,7 +342,7 @@ async function handleCreateAgentKey(req: Request, env: Env): Promise<Response> {
       : Array.isArray(body.scopes) && body.scopes.length
         ? body.scopes.slice(0, 20)
         : ["github:create-repo", "openai:chat"];
-  const expires = body.ttl_days ? new Date(Date.now() + body.ttl_days * 864e5).toISOString() : null;
+  const expires = new Date(Date.now() + ttlDays * 864e5).toISOString();
   const keyId = crypto.randomUUID();
   if (env.DB) {
     await env.DB.prepare(
@@ -309,7 +355,7 @@ async function handleCreateAgentKey(req: Request, env: Env): Promise<Response> {
         hash,
         prefix,
         JSON.stringify(scopes),
-        JSON.stringify(body.ip_allowlist || []),
+        JSON.stringify(ipAllow),
         expires,
         new Date().toISOString()
       )
@@ -399,7 +445,8 @@ async function handleProxy(req: Request, env: Env, provider: string, action: str
 
 const proxyHits = new Map<string, number[]>();
 
-function proxyRateLimited(key: string, limit = 60, windowMs = 60_000): boolean {
+/** Generic per-key sliding-window limiter (in-memory per isolate). */
+function limited(key: string, limit = 60, windowMs = 60_000): boolean {
   const now = Date.now();
   const hits = (proxyHits.get(key) || []).filter((t) => now - t < windowMs);
   hits.push(now);
@@ -409,4 +456,42 @@ function proxyRateLimited(key: string, limit = 60, windowMs = 60_000): boolean {
     if (oldest) proxyHits.delete(oldest);
   }
   return hits.length > limit;
+}
+
+function proxyRateLimited(key: string, limit = 60, windowMs = 60_000): boolean {
+  return limited(key, limit, windowMs);
+}
+
+/** Exact IPv4 or A.B.C.0/24 — the only two forms ipAllowed() enforces. */
+function validIpRule(rule: string): boolean {
+  const oct = "(25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)";
+  return (
+    new RegExp(`^${oct}\\.${oct}\\.${oct}\\.${oct}$`).test(rule) ||
+    new RegExp(`^${oct}\\.${oct}\\.${oct}\\.0\\/24$`).test(rule)
+  );
+}
+
+/** True when the request carries no cross-site marker, or the marker matches
+ *  one of our frontends. Missing Origin (curl, CLI, same-origin GET) passes;
+ *  a present-but-foreign Origin/Referer fails. */
+function sameSiteFrontend(req: Request, env: Env): boolean {
+  const allowed = [
+    env.WEB_BASE_URL,
+    env.DASHBOARD_URL,
+    "http://127.0.0.1:5173",
+    "http://localhost:5173",
+    "http://127.0.0.1:5174",
+    "http://localhost:5174",
+  ].filter(Boolean) as string[];
+  const origin = req.headers.get("Origin");
+  if (origin) return allowed.includes(origin);
+  const referer = req.headers.get("Referer");
+  if (referer) {
+    try {
+      return allowed.includes(new URL(referer).origin);
+    } catch {
+      return false;
+    }
+  }
+  return true;
 }

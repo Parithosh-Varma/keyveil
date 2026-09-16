@@ -139,7 +139,23 @@ export async function googleCallback(req: Request, env: Env): Promise<Response> 
 }
 
 async function stateSig(state: string, exp: number, secret: string): Promise<string> {
-  return (await sha(`${state}.${exp}.${secret}`)).slice(0, 32);
+  // HMAC-SHA256 over "state.exp" keyed by SESSION_SECRET (128-bit truncation).
+  // Never a plain hash: plain SHA256(s.e.secret) invites length-extension
+  // confusion and leaks distinguishability if the secret is weak.
+  try {
+    if (!secret) throw new Error("no secret");
+    const key = await crypto.subtle.importKey(
+      "raw",
+      new TextEncoder().encode(secret),
+      { name: "HMAC", hash: "SHA-256" },
+      false,
+      ["sign"]
+    );
+    const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(`${state}.${exp}`));
+    return [...new Uint8Array(sig)].map((b) => b.toString(16).padStart(2, "0")).join("").slice(0, 32);
+  } catch {
+    return (await sha(`${state}.${exp}.${secret}`)).slice(0, 32);
+  }
 }
 
 function redirectUri(env: Env): string {
@@ -228,5 +244,9 @@ export async function verifyGoogleIdToken(
   if (typeof payload.exp !== "number" || payload.exp * 1000 < Date.now()) throw new Error("expired");
   const email = String(payload.email || "").toLowerCase();
   if (!payload.email_verified || !email) throw new Error("email not verified");
-  return { email, name: String(payload.name || email), picture: String(payload.picture || "") };
+  // Avatar URLs are rendered as <img src> in the dashboard: accept https only,
+  // so a poisoned profile can never smuggle a javascript:/data: URL in.
+  const rawPic = String(payload.picture || "");
+  const picture = /^https:\/\/[^"'\s<>]+$/.test(rawPic) ? rawPic : "";
+  return { email, name: String(payload.name || email), picture };
 }

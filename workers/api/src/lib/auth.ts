@@ -8,14 +8,13 @@ export function getBearerToken(req: Request): string | null {
 }
 
 export function clientIp(req: Request): string {
-  return (
-    req.headers.get("CF-Connecting-IP") ||
-    req.headers.get("X-Forwarded-For")?.split(",")[0]?.trim() ||
-    "unknown"
-  );
+  // Trust Cloudflare's verified client IP only. X-Forwarded-For is
+  // attacker-controlled on direct workers.dev hits and must never override
+  // it (audit-log poisoning / IP-allowlist bypass).
+  return req.headers.get("CF-Connecting-IP") || "unknown";
 }
 
-/** Very small IP allowlist check: exact match or /24,/16 prefix match. Keep simple for scaffold. */
+/** IP allowlist: exact IPv4 match or A.B.C.0/24 prefix. Fail-closed. */
 export function ipAllowed(ip: string, allowlist: string[] | null): boolean {
   if (!allowlist || allowlist.length === 0) return true;
   for (const rule of allowlist) {
@@ -65,9 +64,17 @@ export async function authAgent(req: Request, env: Env): Promise<{ row: AgentKey
 }
 
 export function json(data: unknown, status = 200, extra?: HeadersInit): Response {
+  // This API serves secrets, session grants, and key metadata: nothing it
+  // returns may sit in a browser disk cache, back-button cache entry, or
+  // edge cache. Callers needing to cache /v1/tools can opt out per-route.
   return new Response(JSON.stringify(data), {
     status,
-    headers: { "content-type": "application/json; charset=utf-8", ...(extra || {}) },
+    headers: {
+      "content-type": "application/json; charset=utf-8",
+      "cache-control": "no-store",
+      pragma: "no-cache",
+      ...(extra || {}),
+    },
   });
 }
 
@@ -90,7 +97,7 @@ export function getCookie(req: Request, name: string): string | null {
 }
 
 /** Create an opaque server-side session, returns the session id for the cookie. */
-export async function createSession(env: Env, userId: string, days = 30): Promise<string> {
+export async function createSession(env: Env, userId: string, days = 7): Promise<string> {
   if (!env.DB) throw new Error("DB not bound");
   const id = randomToken();
   const now = Date.now();
@@ -184,7 +191,7 @@ export async function revokeSession(env: Env, id: string): Promise<void> {
 // cookies are blocked; where even that fails, the login grant flow hands the
 // frontend a session bearer instead (see grants below).
 export function sessionCookie(id: string): string {
-  return `session=${encodeURIComponent(id)}; Path=/; HttpOnly; Secure; SameSite=None; Partitioned; Max-Age=2592000`;
+  return `session=${encodeURIComponent(id)}; Path=/; HttpOnly; Secure; SameSite=None; Partitioned; Max-Age=604800`;
 }
 
 export function clearSessionCookie(): string {

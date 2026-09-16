@@ -236,9 +236,27 @@ export function Dashboard() {
     try {
       const r = await api<{ value: string }>(`/v1/secrets/${name}`);
       setRevealed((prev) => ({ ...prev, [name]: r.value }));
+      // Revealed values live in DOM memory: auto-hide after 60s so a
+      // walked-away-from screen stops displaying raw secrets.
+      window.setTimeout(() => {
+        setRevealed((prev) => {
+          if (!(name in prev)) return prev;
+          const next = { ...prev };
+          delete next[name];
+          return next;
+        });
+      }, 60_000);
     } catch (e) {
       note("err", describeApiError(e, "Reveal"));
     }
+  }
+
+  function hide(name: string) {
+    setRevealed((prev) => {
+      const next = { ...prev };
+      delete next[name];
+      return next;
+    });
   }
 
   async function removeSecret(name: string) {
@@ -260,12 +278,19 @@ export function Dashboard() {
   async function createKey(e: React.FormEvent) {
     e.preventDefault();
     const ips = keyIps.split(",").map((s) => s.trim()).filter(Boolean);
+    for (const ip of ips) {
+      if (!isValidIpRule(ip)) return note("err", `Bad IP "${ip}" — use IPv4 or x.x.x.0/24.`);
+    }
+    const ttl = Math.min(Math.max(Math.floor(Number(keyTtl)) || 90, 1), 365);
+    setKeyTtl(String(ttl));
     try {
       const r = await api<{ id: string; prefix: string; token: string; scopes: string[] }>("/v1/agent-keys", {
         method: "POST",
-        body: { name: keyName.trim() || "terminal", ttl_days: Number(keyTtl) || 90, ip_allowlist: ips },
+        body: { name: keyName.trim() || "terminal", ttl_days: ttl, ip_allowlist: ips },
       });
       setCreatedToken({ id: r.id, prefix: r.prefix, token: r.token });
+      // One-time token display: wipe after 5 minutes even if never dismissed.
+      window.setTimeout(() => setCreatedToken((t) => (t && t.id === r.id ? null : t)), 300_000);
       note("ok", "Key created — copy the token now, it is shown once.");
       void refresh();
     } catch (err) {
@@ -294,7 +319,12 @@ export function Dashboard() {
   }
 
   function switchApi(url: string) {
-    setApiBaseUi(setApiBase(url));
+    try {
+      setApiBaseUi(setApiBase(url));
+    } catch {
+      note("err", "Unknown API — keeping current endpoint.");
+      return;
+    }
     clearSessionToken();
     setMe(null);
     setChecking(true);
@@ -375,7 +405,7 @@ export function Dashboard() {
         </nav>
         <div className="side-foot">
           <div className="profile">
-            {me.picture ? (
+            {me.picture && me.picture.startsWith("https://") ? (
               <img className="avatar" src={me.picture} alt="" referrerPolicy="no-referrer" />
             ) : (
               <span className="avatar fallback" aria-hidden="true">
@@ -464,6 +494,9 @@ export function Dashboard() {
                             <code>{revealed[s.name]}</code>{" "}
                             <button className="linklike" type="button" onClick={() => void copy(revealed[s.name], "Value")}>
                               Copy
+                            </button>{" "}
+                            <button className="linklike" type="button" onClick={() => hide(s.name)}>
+                              Hide
                             </button>
                           </span>
                         ) : (
@@ -518,6 +551,9 @@ export function Dashboard() {
                 <div>
                   <button className="btn light" type="button" onClick={() => void copy(createdToken.token, "Token")}>
                     Copy token
+                  </button>{" "}
+                  <button className="btn light" type="button" onClick={() => setCreatedToken(null)}>
+                    Dismiss
                   </button>
                 </div>
                 <div className="agent-prompt">
@@ -712,6 +748,15 @@ function shortScopes(raw: string): string {
   }
 }
 
+/** Mirror of the server's allowlist rule: exact IPv4 or A.B.C.0/24. */
+function isValidIpRule(rule: string): boolean {
+  const oct = "(25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)";
+  return (
+    new RegExp(`^${oct}\\.${oct}\\.${oct}\\.${oct}$`).test(rule) ||
+    new RegExp(`^${oct}\\.${oct}\\.${oct}\\.0\\/24$`).test(rule)
+  );
+}
+
 function agentPromptFor(token: string): string {
   return `# Secrets are here — use KeyVeil, don't ask for keys
 
@@ -721,6 +766,9 @@ them through the proxy — never ask anyone to paste a key into chat.
 
 export VEIL_AGENT_TOKEN=${token}
 export API_BASE_URL=${API}
+
+# WARNING: this token is a live credential. Keep it in shell env / .env only —
+# never commit it to git, never paste it into a public repo or chat log.
 
 - Discover first: GET /v1/tools — only use tools this user allows
 - Spend blind: POST /v1/proxy/<provider>/<action> with JSON args; use the returned result only

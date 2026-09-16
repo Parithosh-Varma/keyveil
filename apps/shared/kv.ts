@@ -4,12 +4,26 @@ export const LOCAL_API = "http://127.0.0.1:8787";
 
 const host =
   typeof location !== "undefined" ? location.hostname : "";
+
+function allowedApiBase(url: string): string | null {
+  // Allow-list: the session bearer in localStorage is sent to whatever API
+  // base is configured, so an arbitrary URL here is a token-exfil primitive
+  // (poisoned localStorage, pasted "debug" URL). Only our prod API and the
+  // local dev worker are ever valid targets.
+  const clean = url.replace(/\/$/, "");
+  return clean === PROD_API || clean === LOCAL_API ? clean : null;
+}
+
+const stored =
+  typeof localStorage !== "undefined" ? localStorage.getItem("api_base") : null;
 export let API: string =
-  (typeof localStorage !== "undefined" && localStorage.getItem("api_base")) ||
+  (stored && allowedApiBase(stored)) ||
   (host === "localhost" || host === "127.0.0.1" ? LOCAL_API : PROD_API);
 
 export function setApiBase(url: string): string {
-  API = url.replace(/\/$/, "");
+  const clean = allowedApiBase(url);
+  if (!clean) throw new Error(`refusing unknown API base: ${url}`);
+  API = clean;
   try {
     localStorage.setItem("api_base", API);
   } catch {

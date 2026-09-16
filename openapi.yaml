@@ -77,7 +77,7 @@ paths:
                 name: { type: string }
                 scopes: { type: array, items: { type: string } }
                 ip_allowlist: { type: array, items: { type: string } }
-                ttl_days: { type: number }
+                ttl_days: { type: number, description: "clamped to 1-365, default 90" }
       responses:
         '200': { description: id, token (once), prefix, scopes }
   /v1/agent-keys/{id}/revoke:
@@ -131,7 +131,7 @@ paths:
               type: object
               properties:
                 name: { type: string }
-                isPublic: { type: boolean }
+                isPublic: { type: boolean, description: "default false — repos are private unless explicitly true" }
       responses:
         '200': { description: repo url only, never token }
   /v1/proxy/openai/chat:
@@ -145,8 +145,8 @@ paths:
             schema:
               type: object
               properties:
-                model: { type: string }
-                input: { type: string }
+                model: { type: string, description: "allow-listed cheap chat models only (default gpt-4o-mini)" }
+                input: { type: string, description: "truncated to 8000 chars" }
       responses:
         '200': { description: model result only }
 components:
