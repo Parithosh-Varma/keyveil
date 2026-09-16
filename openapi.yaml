@@ -1,0 +1,49 @@
+openapi: 3.0.3
+info:
+  title: API-TOKENS Blind Gateway
+  version: 0.1.0
+  description: Agents use secrets without seeing them via proxy tools.
+servers:
+  - url: https://api.yourdomain.com
+paths:
+  /v1/tools:
+    get:
+      summary: List allowed blind tools
+      responses:
+        '200': { description: tools }
+  /v1/proxy/github/create-repo:
+    post:
+      summary: Create GitHub repo (injects GITHUB_TOKEN server-side)
+      security: [{ bearer: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: { type: string }
+                isPublic: { type: boolean }
+      responses:
+        '200': { description: repo url only, never token }
+  /v1/proxy/openai/chat:
+    post:
+      summary: OpenAI chat (injects OPENAI_API_KEY server-side)
+      security: [{ bearer: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                model: { type: string }
+                input: { type: string }
+      responses:
+        '200': { description: model result only }
+components:
+  securitySchemes:
+    bearer:
+      type: http
+      scheme: bearer
+      bearerFormat: tv_live_...

@@ -1,0 +1,9 @@
+:root { color-scheme: light dark; }
+body { font-family: system-ui, sans-serif; margin: 0; }
+.wrap { max-width: 880px; margin: 32px auto; padding: 0 16px; }
+.card { border: 1px solid #8884; border-radius: 12px; padding: 16px; margin: 16px 0; }
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+@media (max-width: 700px) { .grid { grid-template-columns: 1fr; } }
+input, button { padding: 8px 10px; margin: 4px 0; }
+pre { background: #8882; padding: 12px; border-radius: 8px; overflow: auto; }
+.muted { opacity: .7; } .small { font-size: 12px; }

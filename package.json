@@ -1,0 +1,21 @@
+{
+  "name": "api-tokens",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Blind secrets gateway for AI agents — Cloudflare Pages + Workers + D1 + KV",
+  "workspaces": [
+    "apps/web",
+    "workers/api"
+  ],
+  "scripts": {
+    "dev:api": "npm --workspace workers/api run dev",
+    "dev:web": "npm --workspace apps/web run dev",
+    "deploy:api": "npm --workspace workers/api run deploy",
+    "deploy:web": "npm --workspace apps/web run deploy",
+    "db:apply": "wrangler d1 execute api-tokens-db --file=db/schema.sql",
+    "typecheck": "npm --workspace workers/api run typecheck"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

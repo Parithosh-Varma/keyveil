@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Dashboard — API-TOKENS</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <main class="wrap">
+    <h1>Dashboard</h1>
+    <label class="small">API base <input id="api" style="width:320px" placeholder="https://api.yourdomain.com" /></label>
+    <div class="grid">
+      <section class="card">
+        <h2>Store secret</h2>
+        <input id="sname" placeholder="GITHUB_TOKEN" />
+        <input id="svalue" type="password" placeholder="ghp_..." />
+        <button id="save">Save (encrypted)</button>
+        <p class="small muted">Values are AES-GCM encrypted server-side. List shows names only.</p>
+        <ul id="slist"></ul>
+      </section>
+      <section class="card">
+        <h2>Agent keys</h2>
+        <input id="kname" placeholder="opencode-laptop" value="opencode-laptop" />
+        <input id="kips" placeholder='IP allowlist JSON, e.g. ["203.0.113.7"]' />
+        <button id="newkey">Create agent key</button>
+        <pre id="kout" class="small"></pre>
+        <p class="small muted">Copy token once into <code>$VAULT_AGENT_TOKEN</code>. Revoke anytime (API).</p>
+      </section>
+    </div>
+    <section class="card">
+      <h2>Tools (blind proxy)</h2>
+      <button id="tools">List tools</button>
+      <pre id="tout" class="small"></pre>
+    </section>
+    <section class="card">
+      <h2>Audit (last 100)</h2>
+      <button id="audit">Refresh</button>
+      <pre id="aout" class="small"></pre>
+    </section>
+  </main>
+  <script src="./app.js"></script>
+</body>
+</html>

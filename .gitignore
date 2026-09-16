@@ -1,0 +1,11 @@
+node_modules/
+.opencode/
+.wrangler/
+.wrangler/tmp/
+.dev.vars
+.env
+.env.local
+dist/
+build/
+.DS_Store
+*.log
