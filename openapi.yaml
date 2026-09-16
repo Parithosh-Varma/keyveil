@@ -1,16 +1,102 @@
 openapi: 3.0.3
 info:
   title: KeyVeil Blind Gateway
-  version: 0.1.0
-  description: Agents use secrets without seeing them via proxy tools.
+  version: 0.2.0
+  description: >
+    Agents use secrets without seeing them via proxy tools. Human sessions
+    carry full rights on their own account; Bearer agent keys need explicit
+    scopes (secrets:reveal, keys:manage, audit:read).
 servers:
-  - url: https://api.yourdomain.com
+  - url: https://keyveil-api.parithosh.workers.dev
 paths:
+  /health:
+    get:
+      summary: Liveness
+      responses:
+        '200': { description: ok }
   /v1/tools:
     get:
       summary: List allowed blind tools
       responses:
         '200': { description: tools }
+  /v1/whoami:
+    get:
+      summary: Session/key identity (session or Bearer)
+      responses:
+        '200': { description: user_id, via, scopes }
+        '401': { description: login required / invalid token }
+  /v1/secrets:
+    get:
+      summary: List secret names (metadata only, session or Bearer)
+      responses:
+        '200': { description: secrets }
+    post:
+      summary: Store/overwrite a secret (AES-GCM server-side)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, value]
+              properties:
+                name: { type: string }
+                value: { type: string }
+      responses:
+        '200': { description: stored }
+  /v1/secrets/{name}:
+    get:
+      summary: Reveal a value — needs secrets:reveal scope, audit-logged
+      security: [{ bearer: [] }]
+      parameters:
+        - { name: name, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { description: name + value }
+        '403': { description: scope denied }
+        '404': { description: no such secret }
+    delete:
+      summary: Delete a secret (session or Bearer)
+      parameters:
+        - { name: name, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { description: deleted }
+  /v1/agent-keys:
+    get:
+      summary: List key metadata — needs keys:manage scope (never hashes)
+      responses:
+        '200': { description: keys }
+    post:
+      summary: Create a key — full token shown once, needs keys:manage scope
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: { type: string }
+                scopes: { type: array, items: { type: string } }
+                ip_allowlist: { type: array, items: { type: string } }
+                ttl_days: { type: number }
+      responses:
+        '200': { description: id, token (once), prefix, scopes }
+  /v1/agent-keys/{id}/revoke:
+    post:
+      summary: Revoke a key — needs keys:manage scope
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { description: revoked }
+  /v1/audit:
+    get:
+      summary: Last 100 events — needs audit:read scope (no secret values)
+      responses:
+        '200': { description: audit }
+  /v1/auth/logout:
+    post:
+      summary: Revoke the current session
+      responses:
+        '200': { description: ok }
   /v1/proxy/github/create-repo:
     post:
       summary: Create GitHub repo (injects GITHUB_TOKEN server-side)

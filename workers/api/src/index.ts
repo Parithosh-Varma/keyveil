@@ -40,6 +40,9 @@ function withCors(req: Request, env: Env, res: Response): Response {
   if (origin) h.set("Access-Control-Allow-Origin", origin);
   h.set("Access-Control-Allow-Credentials", "true");
   h.append("Vary", "Origin");
+  h.set("X-Content-Type-Options", "nosniff");
+  h.set("Referrer-Policy", "no-referrer");
+  h.set("X-Frame-Options", "DENY");
   return new Response(res.body, { status: res.status, statusText: res.statusText, headers: h });
 }
 

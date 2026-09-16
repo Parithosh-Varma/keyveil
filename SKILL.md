@@ -3,7 +3,7 @@
 You have access to a personal blind secrets gateway. Do NOT ask the user for API keys.
 
 ```
-Base: $API_BASE_URL (e.g. https://api.yourdomain.com)
+Base: $API_BASE_URL (default https://keyveil-api.parithosh.workers.dev)
 Auth: Authorization: Bearer $VEIL_AGENT_TOKEN (already in env, never print it)
 ```
 
