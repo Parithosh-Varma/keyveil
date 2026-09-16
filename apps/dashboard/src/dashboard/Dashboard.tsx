@@ -589,7 +589,7 @@ export function Dashboard() {
                 use local
               </button>{" "}
               ·{" "}
-              <button className="linklike" type="button" onClick={() => switchApi("https://api.keyveil.run.place")}>
+              <button className="linklike" type="button" onClick={() => switchApi("https://keyveil-api.parithosh.workers.dev")}>
                 use production
               </button>
             </p>
