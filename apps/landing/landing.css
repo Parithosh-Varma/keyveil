@@ -44,7 +44,11 @@ a:focus-visible, button:focus-visible, input:focus-visible {
   letter-spacing: -0.02em;
   color: var(--ink);
   text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
 }
+.wordmark .brandmark { width: 26px; height: 26px; display: block; }
 .nav nav { display: flex; gap: 28px; align-items: center; font-size: 14.5px; font-weight: 500; }
 .nav nav a { color: var(--body); text-decoration: none; }
 .nav nav a:hover { color: var(--ink); }
@@ -298,6 +302,8 @@ footer {
 footer nav { display: flex; gap: 24px; }
 footer a { color: var(--muted); text-decoration: none; }
 footer a:hover { color: var(--ink); text-decoration: underline; }
+.foot-brand { display: inline-flex; align-items: center; gap: 8px; }
+.foot-brand img { width: 18px; height: 18px; display: block; }
 
 @media (max-width: 900px) {
   .hero-support { grid-template-columns: 1fr; }

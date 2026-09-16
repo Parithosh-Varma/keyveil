@@ -6,7 +6,8 @@ export function Landing() {
     <>
       <header className="nav">
         <a className="wordmark" href="./">
-          keyveil
+          <img className="brandmark" src="/logo-mark.png" alt="KeyVeil mark" width="26" height="26" />
+          <span>keyveil</span>
         </a>
         <nav>
           <a href="#platform">Platform</a>
@@ -161,7 +162,10 @@ npm run cli -- proxy github create-repo -d '{"name":"my-project","isPublic":true
       </main>
 
       <footer>
-        <span>KeyVeil runs on Cloudflare Pages, Workers, and D1.</span>
+        <span className="foot-brand">
+          <img src="/logo-mark.png" alt="KeyVeil mark" width="18" height="18" />
+          KeyVeil runs on Cloudflare Pages, Workers, and D1.
+        </span>
         <nav>
           <a href="https://keyveil-dashboard.pages.dev/">Dashboard</a>
           <a href="https://github.com/Parithosh-Varma/keyveil">GitHub</a>

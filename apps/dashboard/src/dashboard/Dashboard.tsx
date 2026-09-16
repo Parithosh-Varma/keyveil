@@ -318,12 +318,14 @@ export function Dashboard() {
       <div className="dash">
         <header className="dash-nav">
           <a className="wordmark" href="./">
-            keyveil
+            <img className="brandmark" src="/logo-mark.png" alt="KeyVeil mark" width="24" height="24" />
+            <span>keyveil</span>
           </a>
           <span className="env-pill">{apiBase.includes("127.0.0.1") ? "local API" : "production"}</span>
         </header>
         <main className="signin-wrap">
           <div className="signin-card">
+            <img className="signin-mark" src="/app-icon.png" alt="KeyVeil" width="64" height="64" />
             <p className="eyebrow">KeyVeil dashboard</p>
             <h1>Sign in to manage your keys</h1>
             <p className="lede">
@@ -355,7 +357,8 @@ export function Dashboard() {
     <div className="app">
       <aside className="sidebar">
         <a className="wordmark" href="./">
-          keyveil
+          <img className="brandmark" src="/logo-mark.png" alt="KeyVeil mark" width="24" height="24" />
+          <span>keyveil</span>
         </a>
         <nav className="side-nav" aria-label="Dashboard sections">
           {NAV.map((item) => (

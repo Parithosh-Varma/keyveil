@@ -1,5 +1,7 @@
 # KeyVeil — Blind Secrets Gateway for AI Agents (prod)
 
+<p><img src="brand/app-icon.png" alt="KeyVeil mark" width="72" height="72" /></p>
+
 Multi-user prod vault: users sign in with Google, store third-party API keys, and let AI agents (OpenCode) **use** them via a blind proxy without ever seeing the characters.
 
 Stack: Cloudflare Pages (UI) + Workers (API) + D1 (metadata/audit) + KV (encrypted blobs).
