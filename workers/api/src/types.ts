@@ -19,6 +19,8 @@ export interface AgentKeyRow {
   ip_allowlist: string | null; // JSON array of CIDR/IP, nullable
   expires_at: string | null;
   revoked_at: string | null;
+  max_uses: number | null;
+  uses: number;
   created_at: string;
 }
 

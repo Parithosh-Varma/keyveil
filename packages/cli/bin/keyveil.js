@@ -54,6 +54,7 @@ keys
   .option("--name <name>", "key label", "terminal")
   .option("--scopes <csv>", "explicit scopes (omit for proxy-only default; terminal keys need secrets:reveal,keys:manage,audit:read)", "")
   .option("--ttl <days>", "expiry in days", "90")
+  .option("--single-use", "key dies after one proxy call")
   .option("--ips <csv>", "optional IP allowlist")
   .option("--api <url>")
   .action((opts) => keysCommand("create", {}, opts).catch(fail));

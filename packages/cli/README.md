@@ -44,6 +44,7 @@ keyveil secrets delete OLD_TOKEN
 ```bash
 keyveil keys list
 keyveil keys create --name opencode --ttl 90 [--ips '1.2.3.4']   # proxy-only scopes, locked at creation
+keyveil keys create --name one-shot --single-use                # dies after one proxy call
 keyveil keys create --name terminal --scopes 'secrets:reveal,keys:manage,audit:read' --ttl 90
 keyveil keys revoke <id>
 ```

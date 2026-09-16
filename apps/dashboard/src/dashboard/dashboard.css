@@ -367,6 +367,8 @@ input:focus { border-color: var(--accent); outline: none; box-shadow: 0 0 0 3px 
 .key-form { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 8px; }
 .key-form label { display: grid; gap: 6px; font-size: 13px; font-weight: 500; color: var(--ink); }
 .key-form label.wide { grid-column: 1 / -1; }
+.key-form label.check { display: flex; align-items: center; gap: 9px; font-size: 14px; cursor: pointer; }
+.key-form label.check input { width: 17px; height: 17px; accent-color: var(--accent); }
 .key-form .btn { grid-column: 1 / -1; justify-self: start; }
 
 /* empty states */

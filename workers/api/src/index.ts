@@ -4,6 +4,7 @@ import {
   authAgent,
   clearSessionCookie,
   clientIp,
+  consumeUse,
   getBearerSessionId,
   getBearerSessionUser,
   getBearerToken,
@@ -312,6 +313,7 @@ async function handleCreateAgentKey(req: Request, env: Env): Promise<Response> {
     scopes?: string[];
     ip_allowlist?: string[];
     ttl_days?: number;
+    max_uses?: number;
   };
   // Clamp TTL to 1–365 days (default 90). Unclamped input allowed ttl=0 to
   // mint a never-expiring key, negatives to mint dead keys, and huge values
@@ -342,11 +344,30 @@ async function handleCreateAgentKey(req: Request, env: Env): Promise<Response> {
       : Array.isArray(body.scopes) && body.scopes.length
         ? body.scopes.slice(0, 20)
         : ["github:create-repo", "openai:chat"];
+  // Use budget: humans may set max_uses (clamped 1–10000, else unlimited).
+  // Agents inherit their own budget, and minting burns one of their uses —
+  // a single-use key can mint at most one child, which inherits single-use.
+  let maxUses: number | null = null;
+  if (actor.via === "agent") {
+    if (!env.DB) return json({ error: "DB not bound" }, 500);
+    const parent = await env.DB.prepare("SELECT id, max_uses FROM agent_keys WHERE key_prefix = ?")
+      .bind(actor.keyPrefix || "")
+      .first<{ id: string; max_uses: number | null }>()
+      .catch(() => null);
+    if (!parent || !(await consumeUse(env, parent.id))) {
+      await audit(env, { user_id: actor.userId, actor: actor.via, action: "agent-key:create:exhausted", ok: false, ip: clientIp(req) });
+      return json({ error: "token exhausted — all uses spent" }, 401);
+    }
+    maxUses = parent.max_uses;
+  } else if (Number.isInteger(body.max_uses)) {
+    const n = Math.min(Math.max(body.max_uses as number, 1), 10000);
+    maxUses = n;
+  }
   const expires = new Date(Date.now() + ttlDays * 864e5).toISOString();
   const keyId = crypto.randomUUID();
   if (env.DB) {
     await env.DB.prepare(
-      "INSERT INTO agent_keys (id, user_id, name, key_hash, key_prefix, scopes, ip_allowlist, expires_at, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
+      "INSERT INTO agent_keys (id, user_id, name, key_hash, key_prefix, scopes, ip_allowlist, expires_at, max_uses, uses, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?)"
     )
       .bind(
         keyId,
@@ -357,6 +378,7 @@ async function handleCreateAgentKey(req: Request, env: Env): Promise<Response> {
         JSON.stringify(scopes),
         JSON.stringify(ipAllow),
         expires,
+        maxUses,
         new Date().toISOString()
       )
       .run()
@@ -364,7 +386,7 @@ async function handleCreateAgentKey(req: Request, env: Env): Promise<Response> {
   }
   await audit(env, { user_id: actor.userId, actor: actor.via, action: "agent-key:create", ok: true, ip: clientIp(req) });
   // Show full token ONCE. UI must tell user to save it in $VEIL_AGENT_TOKEN.
-  return json({ id: keyId, token: fullAgentToken(prefix, secret), prefix, scopes, expires_at: expires });
+  return json({ id: keyId, token: fullAgentToken(prefix, secret), prefix, scopes, expires_at: expires, max_uses: maxUses });
 }
 
 async function handleListAgentKeys(req: Request, env: Env): Promise<Response> {
@@ -376,7 +398,7 @@ async function handleListAgentKeys(req: Request, env: Env): Promise<Response> {
   // Metadata only — hashes and secrets never leave the server.
   if (!env.DB) return json({ keys: [] });
   const rows = await env.DB.prepare(
-    "SELECT id, name, key_prefix, scopes, ip_allowlist, expires_at, revoked_at, created_at FROM agent_keys WHERE user_id = ? ORDER BY created_at DESC"
+    "SELECT id, name, key_prefix, scopes, ip_allowlist, expires_at, revoked_at, max_uses, uses, created_at FROM agent_keys WHERE user_id = ? ORDER BY created_at DESC"
   )
     .bind(actor.userId)
     .all()
@@ -433,6 +455,11 @@ async function handleProxy(req: Request, env: Env, provider: string, action: str
   if (!hasScope(authed.scopes, need) && !hasScope(authed.scopes, wildcard) && !hasScope(authed.scopes, "*")) {
     await audit(env, { user_id: authed.row.user_id, actor: "agent", provider, action: `${action}:denied-scope`, ok: false, ip: clientIp(req) });
     return json({ error: "scope denied", need }, 403);
+  }
+  // Single-use accounting: each authorized proxy call burns one use.
+  if (!(await consumeUse(env, authed.row.id))) {
+    await audit(env, { user_id: authed.row.user_id, actor: "agent", provider, action: `${action}:exhausted`, ok: false, ip: clientIp(req) });
+    return json({ error: "token exhausted — all uses spent" }, 401);
   }
   if (provider === "github" && action === "create-repo") {
     return proxyGithubCreateRepo(req, env, authed.row.user_id, body as { name?: string; isPublic?: boolean });

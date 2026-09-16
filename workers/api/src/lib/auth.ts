@@ -82,6 +82,25 @@ export function hasScope(scopes: string[], need: string): boolean {
   return scopes.includes("*") || scopes.includes(need);
 }
 
+/**
+ * Consume one use of an agent key, atomically. Returns true if a use was
+ * available. NULL max_uses = unlimited. The single UPDATE statement makes
+ * concurrent spends race-safe: only one wins the last use.
+ */
+export async function consumeUse(env: Env, keyId: string): Promise<boolean> {
+  if (!env.DB) return false;
+  try {
+    const res = await env.DB.prepare(
+      "UPDATE agent_keys SET uses = uses + 1 WHERE id = ? AND (max_uses IS NULL OR uses < max_uses)"
+    )
+      .bind(keyId)
+      .run();
+    return (res.meta?.changes ?? 0) > 0;
+  } catch {
+    return false;
+  }
+}
+
 /** Opaque 256-bit random token, base64url-encoded. */
 export function randomToken(): string {
   const b = crypto.getRandomValues(new Uint8Array(32));

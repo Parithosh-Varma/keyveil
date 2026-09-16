@@ -24,6 +24,8 @@ interface KeyRow {
   ip_allowlist: string | null;
   expires_at: string | null;
   revoked_at: string | null;
+  max_uses: number | null;
+  uses: number;
   created_at: string;
 }
 interface AuditRow {
@@ -104,6 +106,7 @@ export function Dashboard() {
   const [keyName, setKeyName] = useState("opencode");
   const [keyTtl, setKeyTtl] = useState("90");
   const [keyIps, setKeyIps] = useState("");
+  const [keySingleUse, setKeySingleUse] = useState(false);
   const [createdToken, setCreatedToken] = useState<{ id: string; prefix: string; token: string } | null>(null);
 
   const [audit, setAudit] = useState<AuditRow[]>([]);
@@ -286,7 +289,12 @@ export function Dashboard() {
     try {
       const r = await api<{ id: string; prefix: string; token: string; scopes: string[] }>("/v1/agent-keys", {
         method: "POST",
-        body: { name: keyName.trim() || "terminal", ttl_days: ttl, ip_allowlist: ips },
+        body: {
+          name: keyName.trim() || "terminal",
+          ttl_days: ttl,
+          ip_allowlist: ips,
+          ...(keySingleUse ? { max_uses: 1 } : {}),
+        },
       });
       setCreatedToken({ id: r.id, prefix: r.prefix, token: r.token });
       // One-time token display: wipe after 5 minutes even if never dismissed.
@@ -534,6 +542,14 @@ export function Dashboard() {
                 Scoped automatically: blind proxy only (<code>github:create-repo</code>,{" "}
                 <code>openai:chat</code>). Scopes lock at creation and can't be widened later.
               </p>
+              <label className="wide check">
+                <input
+                  type="checkbox"
+                  checked={keySingleUse}
+                  onChange={(e) => setKeySingleUse(e.target.checked)}
+                />
+                Single-use — dies after one proxy call
+              </label>
               <label className="wide">
                 IP allowlist (optional, comma separated)
                 <input value={keyIps} onChange={(e) => setKeyIps(e.target.value)} placeholder="203.0.113.7" />
@@ -586,6 +602,7 @@ export function Dashboard() {
                     <th>Label</th>
                     <th>Prefix</th>
                     <th>Scopes</th>
+                    <th>Uses</th>
                     <th>Status</th>
                     <th></th>
                   </tr>
@@ -598,6 +615,7 @@ export function Dashboard() {
                         <code>{k.key_prefix}</code>
                       </td>
                       <td className="muted small">{shortScopes(k.scopes)}</td>
+                      <td className="muted small">{usesLabel(k)}</td>
                       <td>{k.revoked_at ? <span className="pill off">revoked</span> : <span className="pill on">active</span>}</td>
                       <td className="right">
                         {!k.revoked_at && (
@@ -738,8 +756,14 @@ function useCountUp(target: number): number {
   return val;
 }
 
-function shortScopes(raw: string): string {
-  try {
+function usesLabel(k: { max_uses: number | null; uses: number }): string {
+  if (k.max_uses === null || k.max_uses === undefined) return "unlimited";
+  if (k.uses >= k.max_uses) return "spent";
+  if (k.max_uses === 1) return k.uses === 0 ? "1 left" : "spent";
+  return `${k.max_uses - k.uses} of ${k.max_uses} left`;
+}
+
+function shortScopes(raw: string): string {  try {
     const arr = JSON.parse(raw) as string[];
     if (arr.includes("*")) return "all";
     return arr.slice(0, 3).join(", ") + (arr.length > 3 ? ` +${arr.length - 3}` : "");

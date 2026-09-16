@@ -78,8 +78,9 @@ paths:
                 scopes: { type: array, items: { type: string } }
                 ip_allowlist: { type: array, items: { type: string } }
                 ttl_days: { type: number, description: "clamped to 1-365, default 90" }
+                max_uses: { type: integer, description: "use budget (1 = single-use); omitted = unlimited; agents inherit" }
       responses:
-        '200': { description: id, token (once), prefix, scopes }
+        '200': { description: id, token (once), prefix, scopes, max_uses }
   /v1/agent-keys/{id}/revoke:
     post:
       summary: Revoke a key — needs keys:manage scope
